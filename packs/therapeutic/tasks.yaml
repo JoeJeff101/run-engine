@@ -1,0 +1,94 @@
+# Twelve tasks, not seventeen. The chain length is a property of the domain, not
+# of the engine.
+tasks:
+  - id: T01
+    title: Characterize the disease and the standard of care
+    seat: clinician
+    phase: "1 establish"
+    description: >-
+      Natural history, current treatments, unmet need, and the endpoint the field
+      actually accepts. Characterize the medium before acting on it.
+  - id: T02
+    title: Is the existing signal real or confounded?
+    seat: epidemiologist
+    phase: "1 establish"
+    crux: true
+    description: >-
+      The crux. A retrospective association between an approved drug and a better
+      outcome is most often confounding by indication. If it does not survive
+      adjustment and replication, nothing downstream is worth funding.
+  - id: T03
+    title: Design the durability mechanism
+    seat: pharmacologist
+    phase: "1 establish"
+    core: true
+    description: >-
+      What would make a response persist rather than decay on discontinuation, and
+      what would demonstrate that it does. Gate failures route back here.
+  - id: T04
+    title: Exposure and interaction profile
+    seat: clinical_pharmacologist
+    phase: "1 establish"
+    core: true
+    description: >-
+      Dose, route, PK in the target population, and interactions with the medications
+      that population is already taking. Stay inside the approved envelope.
+  - id: T05
+    title: Statistical plan and power
+    seat: biostatistician
+    phase: "2 prove safe"
+    description: >-
+      Pre-specified endpoint, effect size sought, power, multiplicity handling, and
+      the stopping rule. Written before any data is seen.
+  - id: T06
+    title: Safety assessment in the new population
+    seat: safety_officer
+    phase: "2 prove safe"
+    core: true
+    description: >-
+      Post-marketing surveillance, label warnings, and what changes when the population
+      changes. Never traded against timeline.
+  - id: T07
+    title: Account for the negative and terminated trials
+    seat: evidence_synthesist
+    phase: "2 prove safe"
+    description: >-
+      Registered trials that stopped, and why. A repurposing case built only on
+      positive literature is a publication-bias artefact.
+  - id: T08
+    title: Protocol and monitoring burden
+    seat: trialist
+    phase: "3 design"
+    description: >-
+      Enrolment criteria, visit schedule, monitoring, and whether the burden is
+      deliverable in ordinary practice rather than in a research centre only.
+  - id: T09
+    title: Discontinuation and reversal path
+    seat: pharmacologist
+    phase: "3 design"
+    description: >-
+      Stopping rules, rescue therapy, unblinding procedure, and the committee
+      empowered to halt. This is the substrate's key.
+  - id: T10
+    title: Regulatory pathway
+    seat: regulatory_affairs
+    phase: "4 authorize"
+    core: true
+    description: >-
+      Which pathway the second indication travels, what the existing label permits,
+      and the one open question that could void the plan.
+  - id: T11
+    title: Ethics and consent
+    seat: ethicist
+    phase: "4 authorize"
+    description: >-
+      What a participant must understand to consent, and whether equipoise genuinely
+      exists. If it does not, the trial should not run.
+  - id: T12
+    title: Verify and finalize
+    seat: qa_lead
+    phase: "4 authorize"
+    finalize: true
+    description: >-
+      Re-run every rule against the protocol dossier, confirm each figure carries an
+      identifier, and sign. Run by a seat that generated none of the work.

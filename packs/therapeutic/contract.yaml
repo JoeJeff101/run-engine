@@ -1,0 +1,16 @@
+rules:
+  - "No effect size, incidence or exposure figure enters any document without a source and a REAL/EST tag."
+  - "A registered trial with posted results is REAL. A conference abstract is EST until the full report exists."
+  - "Preprints are EST regardless of how strong the finding looks."
+  - "State coverage — which registries and databases were searched, with what terms, and what returned nothing."
+  - "Distinguish association from effect, and say which one your source supports."
+  - "Never upgrade an upstream finding's confidence. You may downgrade it."
+  - "Report the negative and terminated trials you found, not only the positive ones."
+real_requires: >-
+  a resolvable primary identifier — an NCT number with posted results, a DOI for a
+  full report, an FDA label section, or a structured record from an authoritative
+  registry
+never:
+  - "Cite a review as though it were the underlying study."
+  - "Emit an NCT number or DOI you have not seen resolve."
+  - "Report an effect size without its interval and its sample size."

@@ -1,0 +1,89 @@
+version: 1
+
+master_metric:
+  performance: >-
+    a durable response in at least 30% of the treated cohort at 26 weeks, with the
+    lower bound of the interval above the control rate
+  do_no_harm: >-
+    no serious adverse event rate above the approved label's established profile, and
+    a pre-specified stopping rule that fires before that threshold
+
+core_disciplines:
+  - clinical
+  - pharmacology
+  - safety
+  - regulatory
+  - biostatistics
+
+market_prior:
+  alpha: 2
+  beta: 4
+
+requirement_sets:
+  - name: evidential
+    headline_risk: >-
+      a positive retrospective signal that is confounded by indication — the sickest
+      patients receiving the drug for a different reason
+    requirements:
+      - E1 the signal replicates in an independent cohort
+      - E2 the effect survives adjustment for the obvious confounders
+      - E3 a plausible mechanism exists and is stated
+      - E4 negative and terminated trials in this indication are accounted for
+      - E5 the endpoint is clinically meaningful, not merely measurable
+      - E6 the comparator reflects current standard of care
+  - name: exposure
+    headline_risk: a dose that works only outside the approved exposure envelope
+    requirements:
+      - Stays within the approved dose and route
+      - Interaction profile compatible with the target population's usual medications
+      - No new formulation required
+  - name: durability
+    headline_risk: >-
+      an effect that reverses the moment dosing stops, turning a therapy into an
+      indefinite exposure
+    requirements:
+      - Response persists after a defined washout
+      - Effect size does not depend on continued escalation
+      - A discontinuation path exists and is documented
+      - Monitoring burden is deliverable in ordinary practice
+
+gates:
+  - id: G0
+    question: Is there a signal in data that already exists?
+    cost: 2000
+    pass_condition: >-
+      a consistent direction of effect across at least two independent existing
+      datasets — published cohorts, registry data, or adverse-event disproportionality
+      — with the confounding-by-indication analysis stated
+    requirement_set: evidential
+    prior: {alpha: 2, beta: 3}
+  - id: G1
+    question: Does the mechanism hold at an approved exposure?
+    cost: 40000
+    pass_condition: >-
+      target engagement demonstrated at or below the approved exposure, in a model or
+      a biomarker study, with the measurement pre-specified
+    requirement_set: exposure
+    depends_on: [G0]
+    prior: {alpha: 2, beta: 2}
+  - id: G2
+    question: Does the safety envelope hold in the new population?
+    cost: 8000
+    pass_condition: >-
+      no signal in the new indication's population that is absent from the approved
+      label, assessed against post-marketing surveillance and the interaction profile
+    requirement_set: exposure
+    depends_on: [G1]
+    prior: {alpha: 3, beta: 2}
+  - id: G3
+    question: Is the response durable, and can exposure be stopped?
+    cost: 5000
+    pass_condition: >-
+      a documented stopping rule, a reversal or rescue path, and evidence that the
+      response persists through a defined washout
+    requirement_set: durability
+    depends_on: [G2]
+    prior: {alpha: 2, beta: 3}
+
+amendments: []
+changelog: []

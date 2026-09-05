@@ -233,3 +233,11 @@ def test_the_linter_imports_nothing_that_can_think():
     for banned in ("backend", "anthropic", "openai", "LLMBackend"):
         assert f"import {banned}" not in body
         assert f"from {banned}" not in body
+
+
+def test_lint_does_not_mistake_an_identifier_for_a_quantity():
+    """A digit run inside an opaque identifier is not a claim anyone can source."""
+    assert lint_dossier("- **Pharmacologist** — [offline:46275215] Findings follow.").ok
+    assert lint_dossier("Run 20260905T143513Z completed.").ok
+    # But a genuine figure on the same line is still caught.
+    assert not lint_dossier("[offline:46275215] Landed cost is $42.50.").ok

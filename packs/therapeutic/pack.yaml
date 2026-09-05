@@ -1,0 +1,6 @@
+name: Therapeutic repurposing candidate
+description: >
+  Whether an approved drug should be advanced into a trial for a second indication.
+  Chosen as the contrast case for the manufacturing pack: non-commercial, a different
+  registry of record, human-subject gates, and a substrate that is a patient population
+  rather than working capital. Nothing in the engine changes between the two.

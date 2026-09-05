@@ -1,0 +1,88 @@
+# A different domain's registries. Same rule: the class is a property of the
+# source, and the agent never assigns it.
+sources:
+  - name: ClinicalTrials.gov
+    class: REAL
+    answers: Registered trials, status, and posted results for this compound and indication.
+    endpoint: https://clinicaltrials.gov/api/v2
+    feeds: [T07, G0]
+    note: >-
+      The registry of record. A registered trial with posted results is REAL; one with
+      a status and no results tells you it happened, not what it found.
+
+  - name: PubMed
+    class: EST
+    answers: The published literature, including the reviews that frame the question.
+    endpoint: https://eutils.ncbi.nlm.nih.gov/entrez/eutils
+    key_env: NCBI_API_KEY
+    adapter: pubmed
+    feeds: [T01, T02, T07]
+    note: >-
+      EST by default. A paper is a document discussing a finding; it becomes REAL for
+      a specific claim when the claim carries the DOI of the full report.
+
+  - name: Europe PMC
+    class: EST
+    answers: Full-text search across the literature and preprints.
+    endpoint: https://www.ebi.ac.uk/europepmc/webservices/rest
+    adapter: europepmc
+    feeds: [T02, T07]
+    note: Preprints are EST regardless of how strong the finding looks.
+
+  - name: openFDA FAERS
+    class: REAL
+    answers: Post-marketing adverse event reports and their disproportionality.
+    endpoint: https://api.fda.gov/drug/event.json
+    key_env: OPENFDA_KEY
+    feeds: [T06, G2]
+    note: >-
+      Spontaneous reports have no denominator. REAL as a record that a report exists;
+      never REAL as an incidence rate.
+
+  - name: DailyMed structured product labels
+    class: REAL
+    answers: The approved label — indications, dose, route, warnings, interactions.
+    endpoint: https://dailymed.nlm.nih.gov/dailymed/services
+    feeds: [T04, T10, G1]
+    note: The document that defines the approved exposure envelope.
+
+  - name: openFDA drug labels
+    class: REAL
+    answers: Machine-readable label sections across products.
+    endpoint: https://api.fda.gov/drug/label.json
+    key_env: OPENFDA_KEY
+    feeds: [T04, T10]
+
+  - name: Crossref
+    class: EST
+    answers: Resolves DOIs and their metadata for cited work.
+    endpoint: https://api.crossref.org
+    adapter: crossref
+    feeds: [T07]
+
+  - name: OpenAlex
+    class: EST
+    answers: Citation graph, to find who cited a finding and who failed to replicate it.
+    endpoint: https://api.openalex.org
+    adapter: openalex
+    feeds: [T02, T07]
+
+  - name: WHO ICTRP
+    class: REAL
+    answers: Trials registered outside ClinicalTrials.gov.
+    endpoint: https://trialsearch.who.int
+    manual: true
+    feeds: [T07]
+    note: >-
+      No open API for bulk querying. Runs as a human queue — the engine emits the exact
+      search strings and the exported record returns through the same staging path.
+
+  - name: Institutional EHR cohort
+    class: REAL
+    answers: An independent cohort in which the retrospective signal can be replicated.
+    endpoint: local data warehouse under an approved protocol
+    key_env: EHR_COHORT_DSN
+    feeds: [T02, G0]
+    note: >-
+      Requires its own governance approval. Declared here so its absence is visible
+      rather than quietly routed around.

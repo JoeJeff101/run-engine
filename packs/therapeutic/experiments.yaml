@@ -1,0 +1,41 @@
+experiments:
+  - id: RX-0.1
+    label: replicate the signal in an independent existing cohort
+    term: G0
+    cost: 2000
+    observations: 600
+    stake: 1.0
+    note: >-
+      Uses data that already exists, so it is cheap, fast, and the only honest way to
+      separate a real effect from confounding by indication.
+
+  - id: RX-0.2
+    label: disproportionality analysis against post-marketing reports
+    term: G2
+    cost: 800
+    observations: 300
+    stake: 1.0
+
+  - id: RX-0.3
+    label: biomarker study of target engagement at approved exposure
+    term: G1
+    cost: 40000
+    observations: 24
+    stake: 1.0
+
+  - id: RX-0.4
+    label: washout sub-study for durability
+    term: G3
+    cost: 5000
+    observations: 30
+    stake: 1.0
+
+  - id: RX-0.5
+    label: structured clinician survey on equipoise and enrolment feasibility
+    term: market
+    cost: 1200
+    observations: 120
+    stake: 0.7
+    note: >-
+      "Market" here is uptake — whether clinicians would enrol. A trial nobody will
+      recruit into fails for reasons unrelated to the science.

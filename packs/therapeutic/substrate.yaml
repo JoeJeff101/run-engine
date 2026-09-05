@@ -1,0 +1,43 @@
+# Same nine stages, an entirely different subject. This is the only cluster that
+# is genuinely about the domain, and the only one replaced wholesale.
+subject: patient exposure and durable response
+steps:
+  - stage: rest
+    name: untreated disease state
+    description: The natural course. Stable, characterized, and the comparator for everything.
+  - stage: access
+    name: reach the target tissue at an approved exposure
+    description: >-
+      Get the compound where it must act without leaving the exposure envelope the
+      existing label already covers.
+  - stage: convert
+    name: engage the mechanism
+    description: >-
+      The pharmacological step, using an approved formulation and route. A novel
+      formulation forfeits the inherited safety record.
+  - stage: intermediate
+    name: measurable biological response
+    window: weeks, while dosing continues
+    description: Real signal, and reversible — it decays when exposure stops.
+  - stage: handling
+    name: survives ordinary clinical practice
+    description: >-
+      Holds under real adherence, real polypharmacy, real comorbidity. A response that
+      needs a research-grade regimen is not yet a therapy.
+  - stage: lock
+    name: durable response off continued dosing
+    description: The point a transient effect becomes a clinical outcome worth the exposure.
+  - stage: fire
+    name: opening enrolment
+    description: >-
+      Once a participant is dosed, that exposure cannot be taken back. One shot,
+      irreversible, and the reason every cheaper gate comes first.
+  - stage: locked
+    name: a durable outcome in an enrolled cohort
+    description: The result the board reviews — outcomes in people, not endpoints in models.
+  - stage: key
+    name: discontinuation and reversal
+    description: >-
+      Stopping rules, a reversal or rescue path, an unblinding procedure, and a data
+      monitoring committee empowered to halt. If there is no key, the lock is a trap —
+      and here the trap is made of people.

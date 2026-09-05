@@ -57,6 +57,13 @@ WEASEL = re.compile(
     r"\b(studies show|research suggests?|industry sources|it is (?:widely )?known|"
     r"experts? (?:say|agree)|generally accepted|commonly cited|market data indicates?)\b", re.I)
 
+# Tokens of the form ``prefix:value`` are identifiers, not quantities:
+# ``offline:46275215`` is a model-output digest and ``PMID:23887888`` is a citation.
+# They are stripped before scanning for figures, because a digit run inside an
+# opaque identifier is not a claim anyone can source. Note the absence of a space
+# after the colon -- "cost: 1,500" is a figure and stays one.
+IDENT_TOKEN = re.compile(r"\b[A-Za-z][\w-]*:[A-Za-z0-9._-]+")
+
 GATE_RESULT = re.compile(r"\b(PASS|FAIL|PENDING|DEFUNDED|GREEN|RED|NOT RUN)\b", re.I)
 HEADLINE = re.compile(r"P\(success\)[^0-9]{0,20}(\d+(?:\.\d+)?)\s?%", re.I)
 CODE_FENCE = re.compile(r"^\s*```")
@@ -221,7 +228,7 @@ def lint_dossier(
 
     # -- L01: a figure with nothing behind it -------------------------------
     for n, line in lines:
-        if not FIGURE.search(line):
+        if not FIGURE.search(IDENT_TOKEN.sub(" ", line)):
             continue
         if TAGGED.search(line) or SOURCE_HINT.search(line) or PRIMARY_SOURCE_RE.search(line):
             continue

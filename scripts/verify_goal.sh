@@ -96,7 +96,8 @@ fi
 # G2  Every new subsystem is actually exercised by a test, not merely written.
 missing=""
 for mod in spec substrate tasks gates probability voi calibration runstate lint report engine cli backends; do
-  grep -rlq "run_engine[._]$mod" tests/ 2>/dev/null || missing="$missing $mod"
+  # Nested modules count: run_engine.agents.backends is still the backends subsystem.
+  grep -rlqE "run_engine[.\w]*[._]$mod" tests/ 2>/dev/null || missing="$missing $mod"
 done
 if [ -z "$missing" ]; then c_pass G2 "every new subsystem has tests referencing it"
 else c_fail G2 "untested subsystems:$missing"; fi
