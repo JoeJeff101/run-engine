@@ -28,7 +28,7 @@ from __future__ import annotations
 
 from typing import Any, Iterable
 
-from ..models import Record
+from ...evidence.models import Record
 from ..query import keywordize, variants
 from .base import http_get, make_record
 

@@ -19,7 +19,7 @@ from __future__ import annotations
 from difflib import SequenceMatcher
 from typing import Any, Iterable
 
-from ..models import Record
+from ...evidence.models import Record
 from ..query import keywordize, normalize_title
 from .base import clean, contact_email, http_get, make_record
 

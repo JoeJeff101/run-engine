@@ -21,8 +21,8 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any, Callable
 
-from ..ledger import Row, StagingLedger, row_from_record
-from ..models import ResearchResult
+from ..evidence.ledger import Row, StagingLedger, row_from_record
+from ..evidence.models import ResearchResult
 from .backend import CallCapExceeded, LLMBackend
 from .board import Board, Seat
 

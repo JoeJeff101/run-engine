@@ -38,7 +38,7 @@ from dataclasses import asdict
 from pathlib import Path
 from typing import Any, Callable, Iterable
 
-from .models import Record, ResearchResult
+from ..evidence.models import Record, ResearchResult
 from .profiles import INTENTS, budget as budget_preset, resolve_intents
 from .query import keywordize
 
@@ -283,7 +283,7 @@ class Router:
         are tried after the cheap structural transforms, because most dead ends
         are structural and a model call is the expensive option.
         """
-        from .dedup import merge_records  # local import keeps module import cheap
+        from ..evidence.dedup import merge_records  # local import keeps module import cheap
         from .query import reformulations
 
         intents = resolve_intents(intent=intent, scope=scope, seat=seat)

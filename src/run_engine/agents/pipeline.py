@@ -66,7 +66,7 @@ class PipelineResult:
 
 
 def _extract_citations(text: str) -> list[str]:
-    from ..ledger import PRIMARY_SOURCE_RE
+    from ..evidence.ledger import PRIMARY_SOURCE_RE
 
     return [m.group(0) for m in PRIMARY_SOURCE_RE.finditer(text or "")]
 

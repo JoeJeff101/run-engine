@@ -4,10 +4,10 @@ from __future__ import annotations
 
 import pytest
 
-from evidence_pipeline.models import Record, ResearchResult
-from evidence_pipeline.profiles import INTENTS, SEAT_PROFILES, budget, resolve_intents
-from evidence_pipeline.router import Router
-from evidence_pipeline.testing import fake_adapters, fake_source
+from run_engine.evidence.models import Record, ResearchResult
+from run_engine.retrieval.profiles import INTENTS, SEAT_PROFILES, budget, resolve_intents
+from run_engine.retrieval.router import Router
+from run_engine.testing import fake_adapters, fake_source
 
 # ---------------------------------------------------------------------------
 # Intent resolution precedence
@@ -145,7 +145,7 @@ def test_permanent_failures_are_not_retried(calls):
     Retrying it wastes the run's time and hides how fast the source actually
     rejected the request.
     """
-    from evidence_pipeline.router import SourceUnavailable
+    from run_engine.retrieval.router import SourceUnavailable
 
     def permanently_broken(query, **kwargs):
         calls["openalex"] = calls.get("openalex", 0) + 1
@@ -158,7 +158,7 @@ def test_permanent_failures_are_not_retried(calls):
 
 
 def test_permanent_failure_still_counts_toward_the_breaker(calls):
-    from evidence_pipeline.router import SourceUnavailable
+    from run_engine.retrieval.router import SourceUnavailable
 
     def permanently_broken(query, **kwargs):
         calls["openalex"] = calls.get("openalex", 0) + 1
@@ -278,7 +278,7 @@ def test_corrupt_cache_entry_is_a_miss_not_a_crash(tmp_path, calls):
 
 def test_connectors_degrade_when_the_network_raises(monkeypatch):
     """With the transport patched to raise, a search still returns a result."""
-    import evidence_pipeline.sources.base as base
+    import run_engine.retrieval.sources.base as base
 
     def _boom(*args, **kwargs):
         raise base.requests.RequestException("network down")

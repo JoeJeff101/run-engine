@@ -17,7 +17,7 @@ from __future__ import annotations
 
 from typing import Any, Iterable
 
-from ..models import Record
+from ...evidence.models import Record
 from ..query import excerpt_around, keywordize
 from .base import clean, http_get, make_record
 

@@ -21,7 +21,7 @@ from pathlib import Path
 from typing import Iterable
 
 from .models import Record
-from .query import normalize_title
+from ..retrieval.query import normalize_title
 
 # ---------------------------------------------------------------------------
 # Record dedup

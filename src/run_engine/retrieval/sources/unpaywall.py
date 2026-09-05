@@ -14,7 +14,7 @@ from __future__ import annotations
 
 from typing import Iterable
 
-from ..models import Record
+from ...evidence.models import Record
 from .base import contact_email, http_get
 
 BASE = "https://api.unpaywall.org/v2"

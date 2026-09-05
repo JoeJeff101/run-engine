@@ -2,16 +2,16 @@
 
 Public surface:
 
-    from evidence_pipeline import Router, Record, resolve_intents
+    from run_engine import Router, Record, resolve_intents
 
 Everything else is importable but considered internal.
 """
 
 from __future__ import annotations
 
-from .models import Record, ResearchResult
-from .profiles import BUDGETS, INTENTS, resolve_intents
-from .router import Router
+from .evidence.models import Record, ResearchResult
+from .retrieval.profiles import BUDGETS, INTENTS, resolve_intents
+from .retrieval.router import Router
 
 __version__ = "0.1.0"
 

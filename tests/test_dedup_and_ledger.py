@@ -4,14 +4,14 @@ from __future__ import annotations
 
 import re
 
-from evidence_pipeline.dedup import (
+from run_engine.evidence.dedup import (
     SaturationTracker,
     TopicDeduper,
     cluster_key,
     merge_records,
     normalize_doi,
 )
-from evidence_pipeline.ledger import (
+from run_engine.evidence.ledger import (
     PRIMARY_SOURCE_RE,
     Row,
     StagingLedger,
@@ -19,7 +19,7 @@ from evidence_pipeline.ledger import (
     promote,
     source_string,
 )
-from evidence_pipeline.models import Record
+from run_engine.evidence.models import Record
 
 # ---------------------------------------------------------------------------
 # Dedup

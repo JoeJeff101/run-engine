@@ -14,8 +14,8 @@ import argparse
 import sys
 from pathlib import Path
 
-from ..ledger import StagingLedger
-from ..router import Router
+from ..evidence.ledger import StagingLedger
+from ..retrieval.router import Router
 from ..testing import fake_adapters
 from .backend import OfflineBackend
 from .board import BoardError, load_board

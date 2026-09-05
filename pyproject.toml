@@ -3,14 +3,14 @@ requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "evidence-pipeline"
+name = "run-engine"
 version = "0.1.0"
-description = "A multi-agent pipeline for automating literature review and prior-art search across scholarly and patent databases."
+description = "A domain-neutral engine for high-stakes decisions: governed runs, an evidence ledger the model cannot write to, a cost-ordered gate ladder, and a probability only real evidence can move."
 readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "MIT" }
 authors = [{ name = "Joseph Jeffrey" }]
-keywords = ["research", "literature-review", "prior-art", "multi-agent", "retrieval"]
+keywords = ["decision-support", "multi-agent", "evidence", "governance", "retrieval", "calibration"]
 classifiers = [
   "Programming Language :: Python :: 3",
   "License :: OSI Approved :: MIT License",
@@ -28,7 +28,7 @@ semantic = ["numpy>=1.24"]
 dev = ["pytest>=7.4"]
 
 [project.scripts]
-evidence-pipeline = "evidence_pipeline.demo:main"
+run-engine = "run_engine.cli:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]

@@ -26,7 +26,7 @@ from typing import Any
 
 import requests
 
-from ..models import Record
+from ...evidence.models import Record
 from ..router import SourceUnavailable
 from ..throttle import GOVERNOR
 

@@ -15,7 +15,7 @@ from __future__ import annotations
 import os
 from typing import Any, Iterable
 
-from ..models import Record
+from ...evidence.models import Record
 from ..query import keywordize
 from .base import clean, contact_email, http_get, make_record
 

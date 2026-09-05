@@ -14,8 +14,8 @@ from __future__ import annotations
 
 import pytest
 
-from evidence_pipeline.router import Router
-from evidence_pipeline.testing import fake_adapters
+from run_engine.retrieval.router import Router
+from run_engine.testing import fake_adapters
 
 
 @pytest.fixture
@@ -38,7 +38,7 @@ def _no_network(monkeypatch: pytest.MonkeyPatch) -> None:
             "a test attempted a real network call; adapters should be faked"
         )
 
-    import evidence_pipeline.sources.base as base
+    import run_engine.retrieval.sources.base as base
 
     monkeypatch.setattr(base.requests, "get", _forbidden)
 
@@ -46,6 +46,6 @@ def _no_network(monkeypatch: pytest.MonkeyPatch) -> None:
 @pytest.fixture(autouse=True)
 def _no_throttle_sleep(monkeypatch: pytest.MonkeyPatch) -> None:
     """Keep the governor's semantics without paying its wall-clock cost."""
-    import evidence_pipeline.throttle as throttle
+    import run_engine.retrieval.throttle as throttle
 
     monkeypatch.setattr(throttle.time, "sleep", lambda _: None)

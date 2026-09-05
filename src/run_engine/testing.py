@@ -14,8 +14,8 @@ from __future__ import annotations
 import hashlib
 from typing import Callable
 
-from .models import Record
-from .router import SourceUnavailable
+from .evidence.models import Record
+from .retrieval.router import SourceUnavailable
 
 # Placeholder subject matter for offline runs. Chosen to be recognizable as
 # synthetic so nobody mistakes a demo transcript for real retrieval.

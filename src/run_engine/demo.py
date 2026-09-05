@@ -15,10 +15,10 @@ import argparse
 import sys
 from pathlib import Path
 
-from .ledger import Row, StagingLedger, grade_for, source_string
-from .profiles import INTENTS, resolve_intents
-from .query import keywordize
-from .router import Router
+from .evidence.ledger import Row, StagingLedger, grade_for, source_string
+from .retrieval.profiles import INTENTS, resolve_intents
+from .retrieval.query import keywordize
+from .retrieval.router import Router
 
 
 def _print_header(question: str, intents: list[str], budget: str, offline: bool) -> None:

@@ -8,10 +8,10 @@ from __future__ import annotations
 
 import pytest
 
-from evidence_pipeline.agents.backend import OfflineBackend
-from evidence_pipeline.agents.board import BoardError, load_board
-from evidence_pipeline.agents.sequential import run_board
-from evidence_pipeline.agents.tournament import (
+from run_engine.agents.backend import OfflineBackend
+from run_engine.agents.board import BoardError, load_board
+from run_engine.agents.sequential import run_board
+from run_engine.agents.tournament import (
     CRITERIA,
     DEAD_END_FLOOR,
     MAX_SCORE,
@@ -22,17 +22,17 @@ from evidence_pipeline.agents.tournament import (
     parse_scores,
     run_tournament,
 )
-from evidence_pipeline.ledger import (
+from run_engine.evidence.ledger import (
     IDENTIFIER_NAMESPACES,
     PRIMARY_SOURCE_RE,
     REGISTRY_RE,
     grade_for,
     namespaces_in,
 )
-from evidence_pipeline.models import Record
-from evidence_pipeline.query import broaden, decompose, pivot_to_rare, reformulations
-from evidence_pipeline.router import Router
-from evidence_pipeline.testing import fake_adapters, fake_source
+from run_engine.evidence.models import Record
+from run_engine.retrieval.query import broaden, decompose, pivot_to_rare, reformulations
+from run_engine.retrieval.router import Router
+from run_engine.testing import fake_adapters, fake_source
 
 BOARD_PATH = "boards/example_board.yaml"
 

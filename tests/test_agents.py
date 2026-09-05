@@ -6,12 +6,12 @@ import threading
 
 import pytest
 
-from evidence_pipeline.agents.backend import CallCapExceeded, OfflineBackend
-from evidence_pipeline.agents.board import BoardError, load_board
-from evidence_pipeline.agents.claims import ClaimLedger, run_pool
-from evidence_pipeline.agents.pipeline import run_pipeline
-from evidence_pipeline.agents.sequential import run_board
-from evidence_pipeline.agents.tournament import Option, parse_ledger, red_team, run_tournament
+from run_engine.agents.backend import CallCapExceeded, OfflineBackend
+from run_engine.agents.board import BoardError, load_board
+from run_engine.agents.claims import ClaimLedger, run_pool
+from run_engine.agents.pipeline import run_pipeline
+from run_engine.agents.sequential import run_board
+from run_engine.agents.tournament import Option, parse_ledger, red_team, run_tournament
 
 BOARD_PATH = "boards/example_board.yaml"
 
