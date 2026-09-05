@@ -2,7 +2,7 @@
 
 This is the one part of an instantiation that is genuinely about its subject
 matter, and the only part replaced wholesale between domains. For a chemist it
-is a molecule's redox states; for a manufacturer it is the cash conversion
+is a compound's reachable states; for a manufacturer it is the cash conversion
 cycle; for a clinician it is a patient population's exposure to a therapy.
 
 The shape is always the same, and it is the shape that ports:

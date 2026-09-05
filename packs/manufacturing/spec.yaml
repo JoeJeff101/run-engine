@@ -1,0 +1,89 @@
+# 06 System Spec — the constitution. Changed only by ratified amendment, never by edit.
+version: 1
+
+master_metric:
+  performance: contribution margin >= 35% at <= 2,000 units per month
+  do_no_harm: cash runway never below 6 months in any stressed cell
+
+core_disciplines:
+  - manufacturing
+  - cost
+  - supply-chain
+  - regulatory
+  - demand
+
+# The prior on "the market is there, conditional on every gate clearing".
+# Weak on purpose: nobody has looked yet, and a confident prior here is the most
+# common way a plan talks itself into existence.
+market_prior:
+  alpha: 2
+  beta: 3
+
+requirement_sets:
+  - name: durability
+    headline_risk: >-
+      a fast follower shipping a visually identical unit at 60% of our price within
+      two quarters of our launch
+    requirements:
+      - D1 input cost: holds margin with resin +30%
+      - D2 freight: holds margin with container rates doubled
+      - D3 FX: holds margin with a 15% adverse move
+      - D4 demand: holds runway with conversion down 40%
+      - D5 price war: holds margin at a 20% price cut
+      - D6 financing: holds runway with rates +200bp
+  - name: v4-must-needs
+    headline_risk: dependence on a single supplier who can therefore set our price
+    requirements:
+      - Holds margin without promotional discounting
+      - Survives ordinary retail payment terms (net 60)
+      - Works without a bespoke single-source component
+  - name: lock
+    headline_risk: a lock so tight it reads as user-hostile and drives reviews down
+    requirements:
+      - Proprietary but not user-hostile
+      - Creates a real switching cost
+      - Leaves exactly one clean customer exit
+      - Legally defensible
+      - Durable across a product generation
+      - Not regulatorily fragile
+      - Not single-supplier dependent
+
+gates:
+  - id: G0
+    question: Will anyone pre-order at the real price?
+    cost: 1500
+    pass_condition: >-
+      at least 25 pre-orders from 1,000 qualified clicks at the target price, with
+      card capture, measured in the ad platform and the storefront export
+    requirement_set: durability
+    prior: {alpha: 2, beta: 3}
+  - id: G1
+    question: Does it work for real buyers in real kitchens?
+    cost: 15000
+    pass_condition: >-
+      20-100 units sold to paying strangers; return rate under 8% and support ticket
+      rate under 15% over 90 days
+    requirement_set: v4-must-needs
+    depends_on: [G0]
+    prior: {alpha: 2, beta: 2}
+  - id: G2
+    question: Does the master metric hold across the full stress grid?
+    cost: 200
+    pass_condition: >-
+      contribution margin >= 35% and runway >= 6 months in every cell of the D1-D6
+      grid, computed from realized costs rather than forecasts
+    requirement_set: durability
+    depends_on: [G1]
+    prior: {alpha: 2, beta: 2}
+  - id: G3
+    question: Can the committed position be deliberately unwound, and at what cost?
+    cost: 500
+    pass_condition: >-
+      total unwind cost (inventory liquidation + tooling resale + contract exits +
+      guarantees) is under six months of operating cash, documented in the contracts
+    requirement_set: lock
+    depends_on: [G2]
+    prior: {alpha: 3, beta: 2}
+
+amendments: []
+changelog: []

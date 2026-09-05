@@ -121,7 +121,7 @@ checksh G5 "run folder carries every required artifact" '
   [ -n "$d" ] || { echo "no run folder"; exit 1; }
   miss=""
   for f in '"$REQUIRED_ARTIFACTS"'; do [ -f "$d$f" ] || miss="$miss $f"; done
-  ls "$d" | grep -qE "^0[1-9]_|^1[0-7]_" || miss="$miss task-notes"
+  ls "$d" | grep -qE "^T[0-9]{2}_.*\.md$" || miss="$miss task-notes"
   [ -z "$miss" ] || { echo "missing:$miss"; exit 1; }'
 
 # G6  Two offline runs of the same pack are identical apart from time. If they
@@ -133,7 +133,7 @@ checksh G6 "offline runs are deterministic" '
   diff -r -I "[0-9]\{4\}-[0-9]\{2\}-[0-9]\{2\}T\?[0-9:]*" -I "\"run_id\"" -I "elapsed" "$a" "$b"'
 
 # G7  A sealed run folder is immutable.
-checkpytest G7 "finalized run folders reject writes" "run_sealed or RunSealed"
+checkpytest G7 "finalized run folders reject writes" "sealed"
 
 # --------------------------------------------------------------------------
 section "The eight invariants"
@@ -204,10 +204,10 @@ checksh G17 "sources table lists class and wiring status per source" '
 #     always checkable; the live path needs Joey's key and is reported honestly
 #     as SKIP when absent rather than quietly assumed.
 checksh G18a "missing credentials fail loudly and name the variable" '
-  env -u ANTHROPIC_API_KEY '"$PY"' -m run_engine.cli run --pack packs/manufacturing --live 2>&1 |
-    grep -q ANTHROPIC_API_KEY
-  test ${PIPESTATUS[0]:-1} -ne 0 || env -u ANTHROPIC_API_KEY '"$PY"' -m run_engine.cli run \
-    --pack packs/manufacturing --live >/dev/null 2>&1; [ $? -ne 0 ]'
+  out=$(env -u ANTHROPIC_API_KEY '"$PY"' -m run_engine.cli run --pack packs/manufacturing \
+        --live --runs-dir '"$RUNTMP"'/nokey 2>&1); rc=$?
+  [ $rc -ne 0 ] || { echo "a keyless live run exited 0 — it must refuse"; exit 1; }
+  printf "%s" "$out" | grep -q ANTHROPIC_API_KEY || { echo "error does not name the variable"; exit 1; }'
 if [ -n "${ANTHROPIC_API_KEY:-}" ]; then
   check G18b "a live run completes against the real API" \
     $PY -m run_engine.cli run --pack packs/manufacturing --live --runs-dir "$RUNTMP/live"

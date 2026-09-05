@@ -5,10 +5,10 @@ Two ideas do all the work here.
 **Order by the cost of falsification, not by the cost of success.** The
 question is "what does it cost to find out this is wrong?", and the cheapest
 answer runs first. A landing page before a pilot run before a stress model
-before a liquidation analysis; a vial before a hair swatch. Reordering the
-ladder to get the exciting gate done first destroys the economics of the whole
-thing, so the order is computed from declared cost rather than declared by the
-author.
+before a liquidation analysis; a bench test before a field trial. Reordering
+the ladder to get the exciting gate done first destroys the economics of the
+whole thing, so the order is computed from declared cost rather than declared
+by the author.
 
 **A failed gate defunds everything downstream.** This is the rule that saves
 the most money and is broken the most often, because the day a gate goes red
@@ -82,11 +82,15 @@ class LadderOutcome:
 
     def to_markdown(self) -> str:
         lines = ["## Gate ladder", "", "Ordered by cost of falsification, cheapest first.", "",
-                 "| Gate | Cost to falsify | Status | Question |",
-                 "|---|---:|---|---|"]
+                 "| Gate | Cost to falsify | Basis | Status | Question |",
+                 "|---|---:|---|---|---|"]
         for o in self.outcomes:
+            # The cost column is tagged EST because a cost of falsification is an
+            # estimate until someone has actually paid it -- and an untagged figure
+            # is exactly what the linter is there to catch, including in our own output.
             lines.append(
-                f"| {o.id} | {o.gate.cost:,.0f} | {o.status.upper()} | {o.gate.question} |")
+                f"| {o.id} | {o.gate.cost:,.0f} | EST | {o.status.upper()} | "
+                f"{o.gate.question} |")
         lines.append("")
         if self.blocked:
             lines += [
@@ -104,6 +108,44 @@ class LadderOutcome:
         return "\n".join(lines)
 
 
+def _order(gates: Sequence[GateSpec]) -> list[GateSpec]:
+    """Cheapest falsification first, subject to what each gate needs to exist first.
+
+    Cost alone is not quite the rule, and pretending it is produces a ladder
+    that cannot be walked. A stress matrix over real input costs is nearly free
+    to *run* -- so pure cost ordering puts it first -- but it has nothing real
+    to stress until a pilot has produced actual invoices. Likewise a
+    reversibility analysis is mostly reading contracts you do not have yet.
+
+    So the ordering is: among the gates whose dependencies are already placed,
+    always take the cheapest. Dependencies constrain what may be considered;
+    cost decides among what is left. With no dependencies declared -- the common
+    case -- this reduces exactly to cost order.
+    """
+    by_id = {g.id: g for g in gates}
+    for g in gates:
+        unknown = [d for d in g.depends_on if d not in by_id]
+        if unknown:
+            raise GateError(
+                f"gate {g.id} depends on {', '.join(unknown)}, which is not on this ladder")
+
+    placed: list[GateSpec] = []
+    done: set[str] = set()
+    remaining = list(gates)
+    while remaining:
+        ready = [g for g in remaining if all(d in done for d in g.depends_on)]
+        if not ready:
+            stuck = ", ".join(sorted(g.id for g in remaining))
+            raise GateError(
+                f"the gate dependencies form a cycle among: {stuck}. A ladder you "
+                f"cannot start climbing is not a ladder.")
+        nxt = min(ready, key=lambda g: (g.cost, g.id))
+        placed.append(nxt)
+        done.add(nxt.id)
+        remaining.remove(nxt)
+    return placed
+
+
 @dataclass
 class Ladder:
     """An ordered gate ladder built from a spec."""
@@ -116,7 +158,7 @@ class Ladder:
             raise GateError("a ladder with no gates cannot falsify anything")
         # Sorting here rather than trusting declaration order is deliberate:
         # the ordering is a property of the costs, not of the author's habits.
-        object.__setattr__(self, "gates", tuple(sorted(self.gates, key=lambda g: (g.cost, g.id))))
+        object.__setattr__(self, "gates", tuple(_order(self.gates)))
 
     @classmethod
     def from_spec(cls, spec: Spec, *, lock_task: str = "T03") -> "Ladder":

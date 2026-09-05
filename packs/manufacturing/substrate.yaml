@@ -1,0 +1,48 @@
+# The state machine this plan acts on. Nine stages; the ninth is the one that
+# makes the rest safe to attempt.
+subject: working capital
+steps:
+  - stage: rest
+    name: cash at rest
+    description: >-
+      Fully liquid, earns nothing, risks nothing but inflation. The state you can
+      always get back to — until you cannot.
+  - stage: access
+    name: reach the buyer without burning the channel
+    description: >-
+      Get in front of demand without discounting the brand, breaking retailer terms,
+      or buying traffic that cannot be repeated at scale.
+  - stage: convert
+    name: cash to goods via contract manufacturing
+    description: >-
+      Standard processes and commodity tooling. No single-source exotic step that
+      hands a supplier a veto over the business.
+  - stage: intermediate
+    name: finished inventory
+    window: one season before markdown
+    description: Real value, decaying — carrying cost, obsolescence, seasonality.
+  - stage: handling
+    name: ordinary fulfilment
+    description: >-
+      Survives standard 3PL, standard shipping abuse, standard retail handling. If it
+      needs white-glove, it is not a product yet.
+  - stage: lock
+    name: the sale commits
+    description: >-
+      Payment captured, return window structured, cartridge subscription attached.
+      The point a unit stops being inventory.
+  - stage: fire
+    name: the tooling purchase order
+    description: >-
+      Steel cut, MOQ committed. One shot, large, unrecoverable. Everything before it
+      is reversible; nothing after it is.
+  - stage: locked
+    name: recognized revenue and installed base
+    description: >-
+      Booked, past the return window, cartridge annuity running. This is what goes in
+      front of the board as the candidate.
+  - stage: key
+    name: the unwind
+    description: >-
+      Returns and refunds, warranty reserve, inventory liquidation channel, tooling
+      resale, contract exit clauses. If there is no key, the lock is a trap.

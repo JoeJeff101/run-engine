@@ -30,10 +30,14 @@ BLOCKING, ADVISORY = "blocking", "advisory"
 # A figure worth sourcing: money, percentages, or a number with a magnitude.
 # Deliberately not "any digit" -- list numbering, dates and section ids are not
 # claims, and a linter that cries wolf gets switched off.
+# Both guards matter. The leading one keeps us out of the middle of a token; the
+# trailing one keeps identifiers from reading as quantities -- a run id like
+# 20260905T142839Z and a model digest like 4176222d both contain long digit runs
+# and neither is a claim about the world.
 FIGURE = re.compile(
     r"(?<![\w.])(?:[$£€]\s?\d[\d,]*(?:\.\d+)?(?:\s?[kKmMbB])?"
     r"|\d[\d,]*(?:\.\d+)?\s?%"
-    r"|\d[\d,]{3,}(?:\.\d+)?)"
+    r"|\d[\d,]{3,}(?:\.\d+)?)(?![\w])"
 )
 TAGGED = re.compile(r"\b(REAL|EST|WEAK)\b")
 # "per" needs a determiner after it: "per the 10-K" is a citation, "per unit" is
@@ -74,6 +78,7 @@ class Finding:
 @dataclass
 class LintReport:
     findings: tuple[Finding, ...] = ()
+    suppressed_lines: int = 0
 
     @property
     def blocking(self) -> tuple[Finding, ...]:
@@ -95,6 +100,11 @@ class LintReport:
             if self.findings else "No findings. Every figure carries a source, every REAL "
             "row carries a document, totals reconcile, and every gate recorded a result."
         )
+        if self.suppressed_lines:
+            lines.append(
+                f"{self.suppressed_lines} line(s) were inside `lint:off` regions and were "
+                f"not checked. Those regions should contain only provenance and telemetry; "
+                f"if a claim is hiding in one, this line is how you find out.")
         lines.append("")
         for severity, group in ((BLOCKING, self.blocking), (ADVISORY, self.advisory)):
             if not group:
@@ -108,22 +118,47 @@ class LintReport:
         return "\n".join(lines).rstrip() + "\n"
 
 
-def _content_lines(text: str) -> list[tuple[int, str]]:
-    """Numbered lines with fenced code blocks removed.
+LINT_OFF = re.compile(r"<!--\s*lint:off\s*-->")
+LINT_ON = re.compile(r"<!--\s*lint:on\s*-->")
 
-    Sample output and worked examples inside fences are illustrations, not
+
+def _content_lines(text: str) -> tuple[list[tuple[int, str]], int]:
+    """Numbered lines, minus fenced code and explicitly suppressed regions.
+
+    Two exclusions, for two different reasons.
+
+    Fenced code is illustration. Sample output and worked examples are not
     claims, and linting them produces noise that trains people to ignore the
-    linter.
+    linter -- which costs more than the findings are worth.
+
+    ``<!-- lint:off -->`` regions are the escape hatch for provenance and
+    telemetry: token counts, run identifiers, cost estimates the engine emitted
+    about itself. Those are facts about the run rather than claims about the
+    world, and they have no source to cite because they *are* the source. The
+    hatch is deliberately visible in the document and its use is counted in the
+    report, because an unreported suppression is indistinguishable from a
+    finding someone did not want to see.
     """
     out: list[tuple[int, str]] = []
     in_fence = False
+    suppressed = 0
+    off = False
     for n, line in enumerate(text.splitlines(), 1):
+        if LINT_OFF.search(line):
+            off = True
+            continue
+        if LINT_ON.search(line):
+            off = False
+            continue
         if CODE_FENCE.match(line):
             in_fence = not in_fence
             continue
+        if off:
+            suppressed += 1
+            continue
         if not in_fence:
             out.append((n, line))
-    return out
+    return out, suppressed
 
 
 def _is_table_line(line: str) -> bool:
@@ -182,7 +217,7 @@ def lint_dossier(
 ) -> LintReport:
     """Run every rule over a compiled dossier and return the findings."""
     findings: list[Finding] = []
-    lines = _content_lines(text)
+    lines, suppressed = _content_lines(text)
 
     # -- L01: a figure with nothing behind it -------------------------------
     for n, line in lines:
@@ -197,14 +232,21 @@ def lint_dossier(
             "a figure appears with no source and no REAL/EST tag", line))
 
     # -- L02: REAL asserted without a document ------------------------------
+    # A grade is a property of a ledger row, so this rule only inspects rows: a
+    # table line carrying REAL in a cell of its own. Matching the bare word
+    # anywhere flagged every sentence that *discusses* the REAL grade, which
+    # trained the reader to skim past the rule that matters most.
     for n, line in lines:
-        if not re.search(r"\bREAL\b", line):
+        if not _is_table_line(line):
+            continue
+        cells = _cells(line)
+        if not any(c.strip().upper() == "REAL" for c in cells):
             continue
         if PRIMARY_SOURCE_RE.search(line) or DOCUMENT_HINT.search(line):
             continue
         findings.append(Finding(
             "real-without-document", BLOCKING, n,
-            "a claim is graded REAL but names no retrievable document or identifier. "
+            "a row is graded REAL but names no retrievable document or identifier. "
             "REAL is earned by a document, not by confidence.", line))
 
     # -- L03: totals that do not reconcile ----------------------------------
@@ -248,7 +290,7 @@ def lint_dossier(
                     f"dossier states P(success) = {claimed:.1%} but the ledger computes "
                     f"{expected_headline:.1%}. The narrative and the arithmetic disagree."))
 
-    return LintReport(findings=tuple(findings))
+    return LintReport(findings=tuple(findings), suppressed_lines=suppressed)
 
 
 def _check_totals(lines: Sequence[tuple[int, str]]) -> list[Finding]:

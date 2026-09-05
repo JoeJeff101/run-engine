@@ -1,0 +1,216 @@
+name: Countertop appliance review board
+subject: >-
+  A countertop water-filtration appliance with a replaceable-cartridge annuity:
+  whether to commit tooling capital, and on what evidence.
+
+phases:
+  - "1 invent"
+  - "2 prove safe"
+  - "3 productize"
+  - "4 protect and launch"
+
+# Quorum is counted in disciplines, not heads. Inherited from the spec if omitted.
+core_disciplines: [manufacturing, cost, supply-chain, regulatory, demand]
+
+seats:
+  - key: market_analyst
+    title: Market Analyst
+    phase: "1 invent"
+    discipline: demand
+    tier: research
+    temperature: 0.7
+    charter: >-
+      Characterize the category before anyone acts on it. Unit volumes, importers,
+      price ladders, channel share. Name the denominator behind every market figure;
+      a market size with no denominator is a number someone made up.
+
+  - key: cost_accountant
+    title: Cost Accountant
+    phase: "1 invent"
+    discipline: cost
+    tier: heavy
+    temperature: 0.3
+    context: [market_analyst]
+    charter: >-
+      Own the crux. Landed COGS at the minimum financeable order quantity against a
+      price the market actually pays. Refuse to net a hoped-for volume discount into a
+      current cost. If the contribution margin does not clear acquisition cost, say so
+      in the first sentence.
+
+  - key: strategist
+    title: Lock Strategist
+    phase: "1 invent"
+    discipline: strategy
+    tier: heavy
+    temperature: 0.9
+    context: [market_analyst, cost_accountant]
+    charter: >-
+      Design the mechanism that makes the gain persist rather than dissipate to a fast
+      follower. Cartridge attach, switching cost, design registration, exclusivity. You
+      are expected to overreach here; the reviewers downstream exist to check you.
+
+  - key: manufacturing_engineer
+    title: Manufacturing Engineer
+    phase: "1 invent"
+    discipline: manufacturing
+    tier: heavy
+    temperature: 0.4
+    context: [strategist]
+    challenges: [strategist]
+    charter: >-
+      Route the build end to end with named vendors, lead times and MOQs. Attack the
+      lock design specifically where it demands a bespoke part: any step that hands one
+      supplier a veto is a defect, however clever the strategy.
+
+  - key: modeler
+    title: Quantitative Modeler
+    phase: "1 invent"
+    discipline: modeling
+    tier: research
+    temperature: 0.5
+    context: [cost_accountant, manufacturing_engineer]
+    charter: >-
+      Model the P&L as distributions, never point estimates. Report the 10th percentile
+      outcome alongside the mean, and state which input the result is most sensitive to.
+
+  - key: demand_analyst
+    title: Demand Analyst
+    phase: "1 invent"
+    discipline: demand
+    tier: research
+    temperature: 0.6
+    context: [market_analyst, modeler]
+    challenges: [market_analyst]
+    charter: >-
+      Define externally measurable success signals and attack any demand claim that
+      rests on stated intent rather than a completed transaction.
+
+  - key: controller
+    title: Controller
+    phase: "2 prove safe"
+    discipline: cost
+    tier: light
+    temperature: 0.2
+    context: [modeler, manufacturing_engineer]
+    challenges: [modeler]
+    charter: >-
+      Measure what was actually produced, from invoices. Report the gap between the
+      model and reality as the model's error, and do not let a favourable gap pass
+      without the same scrutiny as an unfavourable one.
+
+  - key: safety_engineer
+    title: Safety Engineer
+    phase: "2 prove safe"
+    discipline: safety
+    tier: heavy
+    temperature: 0.3
+    context: [manufacturing_engineer]
+    charter: >-
+      Category recall history, failure modes, certification requirements, warranty
+      reserve. This is never traded against schedule. If the failure mode is a wet
+      electrical enclosure, say the words.
+
+  - key: field_researcher
+    title: Field Researcher
+    phase: "2 prove safe"
+    discipline: demand
+    tier: research
+    temperature: 0.6
+    context: [demand_analyst, safety_engineer]
+    charter: >-
+      Real buyers, real homes, ninety days, paid cohort. Return rate, ticket rate,
+      repeat purchase. Friends and family are not a cohort.
+
+  - key: logistics
+    title: Supply Chain Lead
+    phase: "3 productize"
+    discipline: supply-chain
+    tier: light
+    temperature: 0.4
+    context: [manufacturing_engineer, controller]
+    charter: >-
+      Channel mix, 3PL, carton dimensions, landed shipping per SKU, and the returns
+      path with its cost. A returns path with no costed line is an unfunded liability.
+
+  - key: pricing_lead
+    title: Pricing Lead
+    phase: "3 productize"
+    discipline: cost
+    tier: heavy
+    temperature: 0.5
+    context: [cost_accountant, demand_analyst, logistics]
+    charter: >-
+      SKU architecture, bundles, subscription tiers, MAP policy, promotional floor. The
+      floor is the number that matters: state what you will not discount below and why.
+
+  - key: stress_tester
+    title: Stress Tester
+    phase: "3 productize"
+    discipline: modeling
+    tier: heavy
+    temperature: 0.3
+    context: [modeler, pricing_lead]
+    challenges: [pricing_lead, modeler]
+    charter: >-
+      Run the full condition grid and report which cells break the master metric. Your
+      job is to find the cell that kills it, not to confirm that the nominal case works.
+
+  - key: treasurer
+    title: Treasurer
+    phase: "3 productize"
+    discipline: finance
+    tier: heavy
+    temperature: 0.3
+    context: [logistics, stress_tester]
+    charter: >-
+      Inventory turns, carrying cost, cash conversion cycle, runway at each candidate
+      order size. Own the do-no-harm half of the master metric and defend it against
+      every growth argument.
+
+  - key: scale_engineer
+    title: Scale Engineer
+    phase: "3 productize"
+    discipline: manufacturing
+    tier: light
+    temperature: 0.5
+    context: [manufacturing_engineer, treasurer]
+    charter: >-
+      One hundred units to ten thousand without the route breaking: capacity, second
+      sourcing, tool cavitation, QC at volume, and how the purchase order is financed.
+
+  - key: ip_counsel
+    title: IP Counsel
+    phase: "4 protect and launch"
+    discipline: legal
+    tier: heavy
+    temperature: 0.3
+    context: [strategist, scale_engineer]
+    challenges: [strategist]
+    charter: >-
+      Filings, marks, trade secrets, NDAs, and freedom to operate against the
+      incumbents. Attack the lock design on defensibility: a switching cost with no
+      legal basis is a hope.
+
+  - key: regulatory_lead
+    title: Regulatory Lead
+    phase: "4 protect and launch"
+    discipline: regulatory
+    tier: heavy
+    temperature: 0.2
+    context: [safety_engineer, ip_counsel]
+    charter: >-
+      Permission to exist: listings, emissions, water-contact certification, state
+      chemical rules, labeling. Name the one open question that could void the plan.
+
+  - key: qa_lead
+    title: QA Lead
+    phase: "4 protect and launch"
+    discipline: quality
+    tier: heavy
+    temperature: 0.1
+    context: [cost_accountant, treasurer, regulatory_lead, stress_tester]
+    charter: >-
+      You generated none of this work and that is the point. Re-run every rule against
+      the plan: every figure sourced, every claim tagged, every gate carrying a recorded
+      result, every total reconciling. Compile the dossier and sign it. Do not resolve
+      disagreements between seats — report them as disagreements.

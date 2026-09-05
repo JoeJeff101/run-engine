@@ -185,6 +185,11 @@ class GateSpec:
     prior_beta: float = 1.0
     pass_condition: str = ""
     requirement_set: str = ""
+    # Gates this one cannot be evaluated before. Cost decides the order; this
+    # decides what the ordering is allowed to consider. A stress matrix over
+    # real input costs is nearly free to run and still cannot go first, because
+    # it has nothing real to stress until an earlier gate has produced it.
+    depends_on: tuple[str, ...] = ()
 
     def __post_init__(self) -> None:
         if self.cost < 0:
@@ -354,6 +359,7 @@ class Spec:
                 prior_beta=float(prior.get("beta", 1.0)),
                 pass_condition=str(entry.get("pass_condition", "")),
                 requirement_set=str(entry.get("requirement_set", "")),
+                depends_on=tuple(str(d) for d in entry.get("depends_on", []) or []),
             ))
 
         req_sets = tuple(
@@ -416,6 +422,7 @@ class Spec:
             "gates": [
                 {"id": g.id, "question": g.question, "cost": g.cost,
                  "pass_condition": g.pass_condition, "requirement_set": g.requirement_set,
+                 "depends_on": list(g.depends_on),
                  "prior": {"alpha": g.prior_alpha, "beta": g.prior_beta}}
                 for g in self.gates
             ],

@@ -124,13 +124,15 @@ def top_pick(ranked: Sequence[Ranked]) -> Ranked | None:
 def to_markdown(ranked: Sequence[Ranked], *, unfunded: Sequence[str] = ()) -> str:
     lines = ["# Value of information", "",
              "Ranked by variance reduction per unit cost. Run the top one first.", "",
-             "| Rank | Experiment | Informs | Cost | Var before | Var after | VoI/cost |",
-             "|---:|---|---|---:|---:|---:|---:|"]
+             "| Rank | Experiment | Informs | Cost | Basis | Var before | Var after | VoI/cost |",
+             "|---:|---|---|---:|---|---:|---:|---:|"]
     for i, r in enumerate(ranked, 1):
+        # Cost is EST until the experiment is quoted; tagging it keeps this table
+        # compliant with the same linter the dossier has to satisfy.
         lines.append(
             f"| {i} | {r.experiment.id} {r.experiment.label} | {r.experiment.term} | "
-            f"{r.experiment.cost:,.0f} | {r.variance_before:.5f} | {r.variance_after:.5f} | "
-            f"{r.value_per_cost:.3e} |")
+            f"{r.experiment.cost:,.0f} | EST | {r.variance_before:.5f} | "
+            f"{r.variance_after:.5f} | {r.value_per_cost:.3e} |")
     lines.append("")
     pick = top_pick(ranked)
     if pick:

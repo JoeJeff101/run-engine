@@ -1,0 +1,51 @@
+# The candidate experiment queue, ranked by value of information per unit cost.
+# `observations` is how many Bernoulli trials the experiment is expected to yield;
+# it is what makes a cheap high-volume test outrank an expensive low-volume one.
+experiments:
+  - id: BP-0.2
+    label: paid demand test at the real price
+    term: G0
+    cost: 1500
+    observations: 900
+    stake: 1.0
+    note: >-
+      Landing page at the target price, paid traffic, card-capture pre-order. One
+      week. The highest information yield per unit spent in the whole plan.
+
+  - id: BP-0.1b
+    label: three quotes x three quantities x three factories
+    term: G1
+    cost: 4000
+    observations: 9
+    stake: 1.0
+    note: Turns the costed BOM from EST into REAL, and prices the MOQ cliff.
+
+  - id: BP-0.3
+    label: pilot run of 50 units to paying strangers
+    term: G1
+    cost: 15000
+    observations: 50
+    stake: 1.0
+
+  - id: BP-0.4
+    label: stress grid over realized input costs
+    term: G2
+    cost: 200
+    observations: 36
+    stake: 1.0
+    note: Analytic once the pilot has produced real invoices; nearly free before that
+      and meaningless.
+
+  - id: BP-0.5
+    label: liquidation and contract-exit analysis
+    term: G3
+    cost: 500
+    observations: 6
+    stake: 1.0
+
+  - id: BP-0.6
+    label: conjoint pricing panel, n=400
+    term: market
+    cost: 3000
+    observations: 400
+    stake: 0.8

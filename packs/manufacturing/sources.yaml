@@ -1,0 +1,177 @@
+# The data layer for this domain. The engine ships no opinion about which
+# databases matter; a pack declares its own and supplies the keys they need.
+#
+# `class` is the evidence class assigned BY THE SOURCE. An agent reports what it
+# found and where; this table decides what that is worth. An aggregator that
+# estimates category revenue is EST forever, however confident it looks.
+#
+# `adapter` names a retrieval adapter that ships with this repo. A source with no
+# adapter is declared but not automated: it tells you what to go and get.
+
+sources:
+  # --- market and demand -------------------------------------------------
+  - name: US Census (CBP, Annual Survey of Manufactures)
+    class: REAL
+    answers: How many firms, what shipment value, what payroll, by NAICS and county.
+    endpoint: https://api.census.gov/data
+    key_env: CENSUS_API_KEY
+    feeds: [T01, G0]
+    note: The denominator behind every market claim.
+
+  - name: BLS producer and consumer price indices
+    class: REAL
+    answers: Input and output price trends for a specific industry code.
+    endpoint: https://api.bls.gov/publicAPI/v2/timeseries/data/
+    key_env: BLS_API_KEY
+    feeds: [T05, G2]
+
+  - name: FRED
+    class: REAL
+    answers: PPI by NAICS, capacity utilization, rates. Model input distributions.
+    endpoint: https://api.stlouisfed.org/fred
+    key_env: FRED_API_KEY
+    feeds: [T05, G2]
+
+  - name: Marketplace price and rank history
+    class: EST
+    answers: Competitor street prices, rank trajectory, review velocity.
+    endpoint: commercial API (Keepa, Rainforest, Canopy)
+    key_env: MARKETPLACE_API_KEY
+    feeds: [T01]
+    note: >-
+      The best available demand proxy and still an inference. Rank is not units;
+      treating it as units is the most common error in this category.
+
+  - name: Ad platform delivery data
+    class: REAL
+    answers: Real CPM, CTR and CPC at your own targeting. The engine behind G0.
+    endpoint: Meta Marketing API / Google Ads API
+    key_env: AD_PLATFORM_TOKEN
+    feeds: [T06, G0]
+
+  - name: Storefront export
+    class: REAL
+    answers: Actual conversion, actual AOV, actual refunds. Your own primary record.
+    endpoint: Shopify Admin API / Stripe API
+    key_env: STOREFRONT_TOKEN
+    feeds: [T09, G0, G1]
+
+  # --- cost, trade and supply chain --------------------------------------
+  - name: Electronic component pricing
+    class: REAL
+    answers: Live component prices at real break quantities, plus stock and lead time.
+    endpoint: https://api.nexar.com/graphql
+    key_env: NEXAR_TOKEN
+    feeds: [T04, T07]
+
+  - name: USITC DataWeb and HTS
+    class: REAL
+    answers: Duty rate, and US import volumes and values by HTS line.
+    endpoint: https://datawebws.usitc.gov
+    key_env: USITC_TOKEN
+    feeds: [T01, T10]
+    note: A hard floor under any market-size claim.
+
+  - name: UN Comtrade
+    class: REAL
+    answers: Global trade flows for the same code — where production actually sits.
+    endpoint: https://comtradeapi.un.org
+    key_env: COMTRADE_KEY
+    feeds: [T01, T14]
+
+  - name: Bill-of-lading records
+    class: REAL
+    answers: Which factory makes a competitor's product, and roughly how much.
+    endpoint: ImportYeti / Panjiva / ImportGenius
+    key_env: BOL_API_KEY
+    feeds: [T01, T04]
+    note: Highest-signal single source in this table.
+
+  - name: Container freight rates
+    class: REAL
+    answers: Rates on your lane, for the freight row of the stress grid.
+    endpoint: https://developer.freightos.com
+    key_env: FREIGHTOS_TOKEN
+    feeds: [T10, G2]
+
+  - name: Contract manufacturing quotes
+    class: REAL
+    answers: Real tooling and per-part cost at quantity.
+    endpoint: Xometry / Protolabs / Fictiv portals
+    manual: true
+    feeds: [T04, T07]
+    note: >-
+      Portal-only; terms do not permit automated querying. Runs as a human queue —
+      the engine emits the exact specifications, a person requests the quote, and the
+      downloaded PDF is the promotion document.
+
+  # --- safety, regulatory and IP -----------------------------------------
+  - name: CPSC recalls
+    class: REAL
+    answers: What has been recalled in this category and why.
+    endpoint: https://www.saferproducts.gov/RestWebServices
+    feeds: [T08]
+    note: A failure-mode library written by other people's disasters.
+
+  - name: eCFR
+    class: REAL
+    answers: Versioned full text of the regulations that bind this product.
+    endpoint: https://www.ecfr.gov/api
+    feeds: [T16]
+
+  - name: Regulations.gov
+    class: REAL
+    answers: Proposed rules that could invalidate the plan before it ships.
+    endpoint: https://api.regulations.gov
+    key_env: REGULATIONS_GOV_KEY
+    feeds: [T16]
+
+  - name: USPTO PatentSearch
+    class: REAL
+    answers: Freedom to operate; what the incumbents locked and when it expires.
+    endpoint: https://search.patentsview.org/api/v1
+    key_env: PATENTSVIEW_API_KEY
+    adapter: patentsview
+    feeds: [T15]
+
+  - name: UL / Intertek / NSF listings
+    class: REAL
+    answers: Certification status and requirements for water-contact appliances.
+    endpoint: certifier portals
+    manual: true
+    feeds: [T16]
+    note: No public API. Manual REAL rows — attach the certificate.
+
+  # --- financial comparables ---------------------------------------------
+  - name: SEC EDGAR XBRL company facts
+    class: REAL
+    answers: >-
+      Real gross margins, inventory turns and warranty reserves of public comparables.
+    endpoint: https://data.sec.gov/api/xbrl
+    feeds: [T13, G2]
+    note: Sanity-checks the model against companies that actually do this.
+
+  - name: Accounting export
+    class: REAL
+    answers: Your actual COGS, margin and burn. The T07 measurement.
+    endpoint: QuickBooks Online / Xero
+    key_env: ACCOUNTING_TOKEN
+    feeds: [T07, T13]
+
+  - name: Scholarly literature
+    class: EST
+    answers: Materials, failure modes and process methods behind the design choices.
+    endpoint: https://api.openalex.org
+    adapter: openalex
+    feeds: [T04, T08]
+    note: >-
+      EST rather than REAL by default: a paper discussing a property is a document
+      about the thing, not a register entry for it.
+
+  - name: Industry reports
+    class: EST
+    answers: Orientation and vocabulary.
+    endpoint: IBISWorld / Statista / analyst notes
+    manual: true
+    feeds: [T01]
+    note: Useful for framing, never for a load-bearing number.

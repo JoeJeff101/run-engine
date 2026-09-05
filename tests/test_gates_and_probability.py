@@ -333,3 +333,47 @@ def test_reliability_bins_predictions_against_outcomes():
     assert len(bands) == 2
     assert bands[0][3] == pytest.approx(0.0)   # low band, observed 0
     assert bands[-1][3] == pytest.approx(1.0)  # high band, observed 1
+
+
+def test_dependencies_constrain_the_order_but_cost_still_decides():
+    """The near-free analytic gates cannot run first: they have nothing real to
+    work on until a paid gate has produced it. Cost decides among what is ready."""
+    spec = Spec(
+        version=1,
+        master_metric=MasterMetric(performance="margin >= 35%", do_no_harm="runway >= 6mo"),
+        gates=(
+            GateSpec(id="G0", question="will anyone pre-order?", cost=1_500,
+                     pass_condition=">= 25 pre-orders"),
+            GateSpec(id="G1", question="does it work for real buyers?", cost=15_000,
+                     pass_condition="return rate < 8%", depends_on=("G0",)),
+            GateSpec(id="G2", question="does it survive the stress grid?", cost=200,
+                     pass_condition="metric holds in every cell", depends_on=("G1",)),
+            GateSpec(id="G3", question="can we unwind?", cost=500,
+                     pass_condition="exit cost below the floor", depends_on=("G2",)),
+        ),
+    )
+    assert Ladder.from_spec(spec).order == ("G0", "G1", "G2", "G3")
+
+
+def test_a_dependency_cycle_is_refused():
+    spec = Spec(
+        version=1,
+        master_metric=MasterMetric(performance="p", do_no_harm="d"),
+        gates=(
+            GateSpec(id="A", question="?", cost=1, pass_condition="x", depends_on=("B",)),
+            GateSpec(id="B", question="?", cost=1, pass_condition="x", depends_on=("A",)),
+        ),
+    )
+    with pytest.raises(GateError, match="cycle"):
+        Ladder.from_spec(spec)
+
+
+def test_a_dependency_on_a_gate_that_does_not_exist_is_refused():
+    spec = Spec(
+        version=1,
+        master_metric=MasterMetric(performance="p", do_no_harm="d"),
+        gates=(GateSpec(id="A", question="?", cost=1, pass_condition="x",
+                        depends_on=("NOPE",)),),
+    )
+    with pytest.raises(GateError, match="not on this ladder"):
+        Ladder.from_spec(spec)

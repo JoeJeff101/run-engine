@@ -1,0 +1,146 @@
+# The work chain. Strictly linear. Exactly one crux, exactly one finalize, and the
+# finalize seat owns nothing else.
+tasks:
+  - id: T01
+    title: Map the market
+    seat: market_analyst
+    phase: "1 invent"
+    description: >-
+      Category unit volumes, who imports what from which factory, price ladders,
+      channel share, review-volume trends. Characterize the medium before acting on it.
+
+  - id: T02
+    title: Unit economics at the minimum financeable quantity
+    seat: cost_accountant
+    phase: "1 invent"
+    crux: true
+    description: >-
+      Does landed COGS at the minimum financeable order quantity leave contribution
+      margin above customer acquisition cost, at a price the market actually pays?
+      Nothing else matters if this is no.
+
+  - id: T03
+    title: Lock design
+    seat: strategist
+    phase: "1 invent"
+    core: true
+    description: >-
+      Cartridge attach, switching cost, service contract, design registration,
+      retailer exclusivity. This is the node gate failures route back to.
+
+  - id: T04
+    title: Route from raw inputs to finished goods
+    seat: manufacturing_engineer
+    phase: "1 invent"
+    core: true
+    description: >-
+      BOM, suppliers, tooling, assembly, QC, packout — with named vendors, lead times
+      and MOQs at each node. No "TBD" links.
+
+  - id: T05
+    title: Model the P&L as distributions
+    seat: modeler
+    phase: "1 invent"
+    description: >-
+      Not point estimates. Distributions on resin, freight, FX, conversion and return
+      rate; report the 10th percentile, not the mean.
+
+  - id: T06
+    title: Define the observable success signal
+    seat: demand_analyst
+    phase: "1 invent"
+    description: >-
+      Paid conversion at target price, cartridge attach rate, 90-day repeat rate.
+      Externally measurable, never self-reported.
+
+  - id: T07
+    title: Measure what was actually produced
+    seat: controller
+    phase: "2 prove safe"
+    description: >-
+      Actual unit cost from real invoices; actual yield, scrap and defect rate from the
+      pilot. The gap between this and T05 is the model error.
+
+  - id: T08
+    title: Product safety and liability
+    seat: safety_engineer
+    phase: "2 prove safe"
+    core: true
+    description: >-
+      Category recall history and failure modes, certification requirements, product
+      liability cover, warranty reserve sizing. Never traded against speed.
+
+  - id: T09
+    title: Confirm with real buyers
+    seat: field_researcher
+    phase: "2 prove safe"
+    description: >-
+      Real buyers, real kitchens, 90 days. Return rate, ticket rate, repeat purchase —
+      from a paid cohort, never from friends and family.
+
+  - id: T10
+    title: Channel and logistics
+    seat: logistics
+    phase: "3 productize"
+    description: >-
+      DTC, marketplace and retail mix; 3PL, carton dimensions, landed shipping per SKU,
+      and the returns path with its cost.
+
+  - id: T11
+    title: SKU architecture and price ladder
+    seat: pricing_lead
+    phase: "3 productize"
+    core: true
+    description: >-
+      Base unit, bundles, cartridge subscription tiers, MAP policy, promotional floor.
+      The exact sellable configuration.
+
+  - id: T12
+    title: Stress the business as a grid
+    seat: stress_tester
+    phase: "3 productize"
+    description: >-
+      Resin +30%, freight doubled, FX -15%, price -20%, rates +200bp, conversion -40%.
+      Which cells still clear the master metric?
+
+  - id: T13
+    title: Working-capital survival
+    seat: treasurer
+    phase: "3 productize"
+    description: >-
+      Inventory turns, carrying cost, cash conversion cycle, runway at each candidate
+      order size.
+
+  - id: T14
+    title: Scale the process
+    seat: scale_engineer
+    phase: "3 productize"
+    description: >-
+      100 to 10,000 units: supplier capacity, second-source qualification, tool
+      cavitation, QC at volume, and how the purchase order gets financed.
+
+  - id: T15
+    title: Protect the gain before disclosing it
+    seat: ip_counsel
+    phase: "4 protect and launch"
+    description: >-
+      Utility and design filings, trademarks, trade secrets, supplier NDAs, and a
+      freedom-to-operate search against the incumbents' portfolios.
+
+  - id: T16
+    title: Permission to exist in the market
+    seat: regulatory_lead
+    phase: "4 protect and launch"
+    core: true
+    description: >-
+      UL/ETL listing, FCC Part 15, NSF/ANSI water-contact certification, Prop 65,
+      CPSIA where applicable, EU CE / UKCA, labeling and instructions.
+
+  - id: T17
+    title: Verify and finalize
+    seat: qa_lead
+    phase: "4 protect and launch"
+    finalize: true
+    description: >-
+      Re-run every rule against the plan, compile the lender dossier, and sign it.
+      Run by a seat that generated none of the work being checked.
