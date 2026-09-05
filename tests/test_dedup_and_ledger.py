@@ -317,3 +317,46 @@ def test_agents_cannot_reach_the_authoritative_file_through_staging(tmp_path):
 
     assert staged.exists()
     assert not authoritative.exists(), "only promote() may create the authoritative ledger"
+
+
+# ---------------------------------------------------------------------------
+# The invariant, stated by name
+# ---------------------------------------------------------------------------
+
+
+def test_only_the_promotion_script_writes_a_real_row(tmp_path):
+    """Invariant 2. An agent may write the letters R-E-A-L into a staged row --
+    it is a text file and nothing can stop it. What it cannot do is make that
+    row authoritative. Promotion is a separate command, run by a person, that
+    checks for a resolvable identifier and refuses without one.
+
+    So the guarantee is not "agents never say REAL". It is "saying REAL is not
+    how a row becomes REAL", which is the only version of the guarantee that
+    can actually be enforced.
+    """
+    staged = tmp_path / "staged.md"
+    authoritative = tmp_path / "ledger.md"
+
+    fabricated = Row(
+        topic="G0", claim="the demand test passed decisively", value="pass",
+        grade="REAL", source="our analysis of the market", origin="agent",
+    )
+    honest = Row(
+        topic="G0", claim="Apple's reported gross margin", value="46/100",
+        grade="REAL", source="CIK: 0000320193", origin="edgar",
+    )
+    StagingLedger(staged, run_id="r1").stage([fabricated, honest], dry=False)
+
+    # Staging wrote both. Staging carries no authority, so this proves nothing yet.
+    assert "our analysis of the market" in staged.read_text()
+
+    report = promote(staged, authoritative, apply=True)
+
+    promoted_claims = {r.claim for r in report.promoted}
+    rejected_claims = {r.claim for r, _ in report.rejected}
+    assert "Apple's reported gross margin" in promoted_claims
+    assert "the demand test passed decisively" in rejected_claims, (
+        "a confident agent assertion with no identifier must not reach the "
+        "authoritative ledger"
+    )
+    assert "our analysis of the market" not in authoritative.read_text()

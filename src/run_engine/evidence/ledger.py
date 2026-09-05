@@ -280,7 +280,7 @@ class StagingLedger:
             lines.append("")
             lines.append(
                 "Written by agents. Nothing here counts until a human promotes it. "
-                "See `evidence_pipeline.ledger.promote`."
+                "See `run_engine.evidence.ledger.promote`."
             )
             lines.append("")
             lines.extend(_header())

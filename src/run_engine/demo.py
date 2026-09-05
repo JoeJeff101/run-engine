@@ -1,7 +1,7 @@
 """End-to-end retrieval demo.
 
-    python -m evidence_pipeline.demo "solid-state electrolyte interface stability"
-    python -m evidence_pipeline.demo --offline "any question"      # no network
+    python -m run_engine.demo "solid-state electrolyte interface stability"
+    python -m run_engine.demo --offline "any question"      # no network
 
 Shows the whole path: question -> keywords -> intent -> source chain -> dedup ->
 staged evidence. Live mode uses only the keyless sources, so it works with no
@@ -107,7 +107,7 @@ def main(argv: list[str] | None = None) -> int:
         if not args.apply:
             print("  (dry run: pass --apply to write)")
         print("\nStaging is not promotion. Nothing here counts as evidence until a")
-        print("human promotes it:  python -m evidence_pipeline.ledger <staged> <authoritative>")
+        print("human promotes it:  python -m run_engine.evidence.ledger <staged> <authoritative>")
 
     return 0
 

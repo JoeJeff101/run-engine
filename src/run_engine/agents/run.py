@@ -1,6 +1,6 @@
 """CLI: execute a board and print the handoff trace.
 
-    python -m evidence_pipeline.agents.run --board boards/example_board.yaml --offline
+    python -m run_engine.agents.run --board boards/example_board.yaml --offline
 
 ``--offline`` is the default and runs with no credentials and no network, so a
 fresh clone works immediately. ``--live`` is a deliberate opt-in that requires a
