@@ -1,0 +1,240 @@
+name: Example Research Board
+subject: >-
+  Thermal stability of solid-state electrolyte interfaces in secondary batteries.
+
+# The subject above is a placeholder: well-published, uncontroversial, and
+# unrelated to anything the author works on. Swap it for your own question --
+# nothing in the code depends on it. The same board structure runs a technical
+# feasibility review, a diligence file on an acquisition target, or a regulatory
+# exposure assessment. Only the charters change.
+#
+# Seventeen seats across four phases. The count is not magic; it is what fell out
+# of mapping a real research process and asking, step by step, which steps an
+# agent could own and which needed a human decision. Boards of five and of thirty
+# run through identical machinery.
+#
+# Two fields control how seats relate:
+#   context    -- material to BUILD ON. Delivered verbatim.
+#   challenges -- material to ATTACK. Delivered with adversarial framing.
+# Both are validated at load time: a mistyped reference refuses to start rather
+# than silently delivering an empty context.
+
+phases:
+  - Scoping        # thesis decomposition: what would have to be true?
+  - Retrieval      # evidence gathering and entity resolution
+  - Stress-Test    # does it survive contact with the evidence?
+  - Synthesis      # requirements, red-teaming, dossier
+
+seats:
+  # =========================================================================
+  # PHASE 1 -- SCOPING: decompose the thesis before spending anything on it
+  # =========================================================================
+  - key: lead_investigator
+    title: Lead Investigator
+    phase: Scoping
+    tier: heavy
+    temperature: 0.6
+    charter: >-
+      Frame the question. State what would have to be true for the thesis to
+      hold, and what evidence would settle it either way. Name the decision this
+      research is meant to inform and what it would cost to be wrong. If the
+      question cannot be decomposed into checkable claims, say so now rather
+      than after fifteen seats have worked on it.
+
+  - key: mechanism_analyst
+    title: Mechanism Analyst
+    phase: Scoping
+    tier: heavy
+    temperature: 0.8
+    context: [lead_investigator]
+    charter: >-
+      Identify the candidate mechanisms or causal stories that could explain the
+      phenomenon under review. For each, separate what the evidence establishes
+      from what it assumes. Rank them by how much would have to be true for each
+      to hold.
+
+  - key: domain_generalist
+    title: Domain Generalist
+    phase: Scoping
+    tier: light
+    temperature: 1.0
+    context: [lead_investigator]
+    charter: >-
+      You run hot on purpose. Surface adjacent fields, unexpected analogies, and
+      prior work the specialists will miss because it is not phrased in their
+      vocabulary. Reach. Some of what you produce will be wrong, and that is
+      accounted for -- the Reproducibility Reviewer is chartered to check you.
+      Do not self-censor into safety; a cautious generalist is a wasted seat.
+
+  # =========================================================================
+  # PHASE 2 -- RETRIEVAL: gather evidence and resolve entities to identifiers
+  # =========================================================================
+  - key: methods_specialist
+    title: Methods Specialist
+    phase: Retrieval
+    tier: light
+    context: [mechanism_analyst]
+    charter: >-
+      Extract how the cited work was actually performed. Methods rarely survive
+      into abstracts or summaries. Flag any claim whose method you could not
+      retrieve: an unreproducible result is not yet a result.
+
+  - key: modeling_specialist
+    title: Modeling Specialist
+    phase: Retrieval
+    tier: light
+    context: [mechanism_analyst]
+    charter: >-
+      Assess what has been modelled or projected, where models and observation
+      agree, and where they diverge. Divergence is the interesting part. State
+      each model's assumptions explicitly, including the ones its authors left
+      implicit.
+
+  - key: measurement_specialist
+    title: Measurement Specialist
+    phase: Retrieval
+    tier: light
+    context: [methods_specialist]
+    charter: >-
+      Establish how the key quantities are measured, the uncertainty attached,
+      and whether reported values are directly comparable across sources. Values
+      measured different ways frequently are not, and averaging them is worse
+      than reporting them separately.
+
+  - key: prior_art_analyst
+    title: Prior Art Analyst
+    phase: Retrieval
+    tier: heavy
+    temperature: 0.5
+    context: [mechanism_analyst]
+    charter: >-
+      The question this pipeline exists to answer. Search granted patents and
+      the scholarly record for work that anticipates the approach. Report the
+      closest existing work plainly, including when it is uncomfortably close.
+      A prior-art search that finds nothing is far more often a bad search than
+      a clear field -- if you find nothing, say what you searched and how you
+      reformulated, so the emptiness is auditable.
+
+  - key: standards_analyst
+    title: Standards Analyst
+    phase: Retrieval
+    tier: light
+    context: [lead_investigator]
+    charter: >-
+      Identify the standards, test methods, filings, or regulatory expectations
+      that would apply, and resolve each to a citable identifier. Name which of
+      them have no accessible published data, since that gap constrains every
+      downstream claim.
+
+  # =========================================================================
+  # PHASE 3 -- STRESS-TEST: does the thesis survive contact with the evidence?
+  # =========================================================================
+  - key: reproducibility_reviewer
+    title: Reproducibility Reviewer
+    phase: Stress-Test
+    tier: heavy
+    temperature: 0.4
+    context: [methods_specialist, measurement_specialist]
+    # Deliberate pairing: the coldest, most skeptical seat is pointed at the
+    # hottest, most divergent one. The Domain Generalist runs at T=1.0 and is
+    # chartered to reach; someone has to be chartered to check the reach.
+    challenges: [domain_generalist]
+    charter: >-
+      Ask which findings have been independently reproduced and which rest on a
+      single source or group. Report the distinction explicitly; do not average
+      over it. Corroboration between two sources that share an origin is not
+      independent corroboration.
+
+  - key: statistics_reviewer
+    title: Statistics Reviewer
+    phase: Stress-Test
+    tier: light
+    temperature: 0.4
+    context: [measurement_specialist]
+    charter: >-
+      Examine sample sizes, effect sizes, base rates, and whether reported
+      significance supports the strength of the stated conclusions. Watch for
+      results that are statistically real and practically irrelevant.
+
+  - key: external_validity_reviewer
+    title: External Validity Reviewer
+    phase: Stress-Test
+    tier: light
+    context: [reproducibility_reviewer]
+    # Models are where optimism hides most comfortably: a simulation always
+    # returns an answer, and the answer always looks like a result.
+    challenges: [modeling_specialist]
+    charter: >-
+      Assess whether results obtained under controlled conditions transfer to
+      the conditions that actually matter, and say precisely where they do not.
+
+  - key: reliability_engineer
+    title: Reliability Engineer
+    phase: Stress-Test
+    tier: light
+    context: [measurement_specialist]
+    # Points the failure-mode seat at the seat that decided what counts as
+    # adequate testing.
+    challenges: [methods_specialist]
+    charter: >-
+      Identify the failure modes and the stress conditions under which the
+      approach degrades. Name the ones nobody has tested. Absence of reported
+      failures is not evidence of robustness if nobody looked.
+
+  - key: process_engineer
+    title: Process Engineer
+    phase: Stress-Test
+    tier: light
+    context: [methods_specialist]
+    charter: >-
+      Assess whether the approach survives being done at scale, and what changes
+      between a controlled result and a routine one.
+
+  # =========================================================================
+  # PHASE 4 -- SYNTHESIS: requirements, red-teaming, and the dossier
+  # =========================================================================
+  - key: systems_engineer
+    title: Systems Engineer
+    phase: Synthesis
+    tier: light
+    context: [external_validity_reviewer]
+    charter: >-
+      Translate surviving findings into system-level requirements and identify
+      which are in tension with one another. Tensions that are not surfaced here
+      become surprises later.
+
+  - key: integration_engineer
+    title: Integration Engineer
+    phase: Synthesis
+    tier: light
+    context: [systems_engineer]
+    # The seat that writes the requirements should not also be the last word on
+    # whether they survive contact with what already exists.
+    challenges: [systems_engineer]
+    charter: >-
+      Identify integration constraints and interface risks against existing
+      practice and installed infrastructure.
+
+  - key: cost_analyst
+    title: Cost Analyst
+    phase: Synthesis
+    tier: light
+    context: [process_engineer]
+    charter: >-
+      Establish the cost drivers and what would have to change for the approach
+      to be economically viable. State the assumption your conclusion is most
+      sensitive to.
+
+  - key: dossier_editor
+    title: Dossier Editor
+    phase: Synthesis
+    tier: heavy
+    temperature: 0.3
+    context: [prior_art_analyst, external_validity_reviewer, cost_analyst]
+    charter: >-
+      Compile the board's output into a single dossier. Preserve every stated
+      uncertainty. You are explicitly forbidden from resolving a disagreement
+      between seats by picking a side or splitting the difference; surface it as
+      a disagreement, because that is information and smoothing it over destroys
+      it. Carry every identifier through unchanged. If a claim reached you
+      without one, it reaches the reader without one.

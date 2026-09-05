@@ -1,0 +1,6 @@
+%% The gate: agents stage, humans promote.
+flowchart LR
+    A["agents"] -->|"stage(), origin tagged"| P["proposed ledger (no authority)"]
+    P -->|"preview by default"| H{"human review"}
+    H -->|"--apply"| L["authoritative ledger"]
+    H -->|"rejected"| X["stays staged"]

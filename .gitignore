@@ -1,0 +1,29 @@
+# Secrets -- never commit
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Caches produced at runtime
+.cache/
+_router_cache/
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+.pytest_cache/
+
+# Run artifacts
+*.log
+out/
+staged/
+
+# OS
+.DS_Store

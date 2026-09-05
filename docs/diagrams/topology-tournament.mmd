@@ -1,0 +1,16 @@
+%% The judge scores a rubric. The CODE computes the ranking,
+%% so the most confident-sounding champion cannot win on tone.
+flowchart TD
+    Q["question"] --> C1["champion A at T=0.60"]
+    Q --> C2["champion B at T=0.80"]
+    Q --> C3["champion C at T=0.90"]
+    Q --> C4["wildcard at T=1.10"]
+    C1 --> J["judge at T=0.20"]
+    C2 --> J
+    C3 --> J
+    C4 --> J
+    J --> SC["scorecard: evidence_density x3, specificity x2,
+    falsifiability x2, coverage_honesty x1, minus penalties"]
+    SC --> CODE["code ranks: total, then evidence density, then fewest penalties"]
+    CODE --> L["INCUMBENT / FALLBACK / DEAD-END"]
+    L -.->|"status persists, marks do not"| N["next run must defend or challenge"]

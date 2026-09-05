@@ -1,0 +1,25 @@
+%% End-to-end: thesis in, staged evidence out.
+%% A dead end is retried differently, never repeated.
+%% Nothing reaches the authoritative ledger without a human.
+flowchart TD
+    Q["Thesis or question"] --> KW["Normalize to keywords"]
+    KW --> INT{"Which question is this?"}
+
+    INT -->|"what exists?"| C1["OpenAlex to Semantic Scholar to Crossref"]
+    INT -->|"how was it done?"| C2["CORE to Semantic Scholar to Europe PMC"]
+    INT -->|"who owns it?"| C3["PatentsView to OpenAlex"]
+    INT -->|"which entity is this?"| C4["Registry to OpenAlex"]
+
+    C1 --> R["Router: early stop, circuit breaker, TTL cache"]
+    C2 --> R
+    C3 --> R
+    C4 --> R
+
+    R --> E{"anything found?"}
+    E -->|"no"| RF["Reformulate: broaden, pivot to rare, decompose"]
+    RF --> R
+    E -->|"yes"| D["Dedup and authority merge"]
+
+    D --> A["Agent board: 17 seats, 4 phases"]
+    A --> S["Staged evidence (no authority)"]
+    S -.->|"human promotes"| L["Authoritative ledger"]

@@ -1,0 +1,14 @@
+%% The four phases. Each is a place the work can stop
+%% before the next one costs anything.
+flowchart LR
+    P1["1. Scoping (3 seats)
+    decompose the thesis"] --> P2["2. Retrieval (5 seats)
+    gather and resolve to identifiers"]
+    P2 --> P3["3. Stress-Test (5 seats)
+    try to break it"]
+    P3 --> P4["4. Synthesis (4 seats)
+    red-team and compile"]
+
+    P1 -.->|"not decomposable"| X1["stop"]
+    P2 -.->|"no evidence found"| X2["stop"]
+    P3 -.->|"thesis fails"| X3["stop"]

@@ -1,0 +1,20 @@
+%% Declared narrow context, not shared-everything.
+%% Solid = build on it. Dotted = chartered to attack it.
+flowchart LR
+    LI["Lead Investigator"] --> MA["Mechanism Analyst"]
+    LI --> DG["Domain Generalist T=1.0"]
+    MA --> MS["Methods Specialist"]
+    MA --> MO["Modeling Specialist"]
+    MA --> PA["Prior Art Analyst"]
+    MS --> ME["Measurement Specialist"]
+    MS --> RR["Reproducibility Reviewer T=0.4"]
+    ME --> RR
+    RR --> EV["External Validity Reviewer"]
+    EV --> SE["Systems Engineer"]
+    SE --> IE["Integration Engineer"]
+    PA --> DE["Dossier Editor"]
+    EV --> DE
+
+    RR -.->|"attacks"| DG
+    EV -.->|"attacks"| MO
+    IE -.->|"attacks"| SE

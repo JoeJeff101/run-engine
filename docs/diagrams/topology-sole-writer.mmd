@@ -1,0 +1,11 @@
+%% Topology 3: exactly one writer, so write races cannot exist
+%% and verification cannot be routed around.
+flowchart LR
+    S["scout"] -->|"topic queue"| W1["worker 1"]
+    S -->|"topic queue"| W2["worker 2"]
+    S -->|"topic queue"| W3["worker 3"]
+    W1 -->|"draft queue"| V["verifier (sole writer)"]
+    W2 -->|"draft queue"| V
+    W3 -->|"draft queue"| V
+    V -->|"citations trace"| OUT["output"]
+    V -->|"citations do not trace"| QUAR["quarantine"]
