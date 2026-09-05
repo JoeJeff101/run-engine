@@ -27,3 +27,6 @@ staged/
 
 # OS
 .DS_Store
+
+# Run artifacts
+runs/
