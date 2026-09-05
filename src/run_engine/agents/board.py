@@ -42,6 +42,10 @@ class Seat:
     temperature: float = 0.7
     context: list[str] = field(default_factory=list)
     retrieval: bool = True
+    # The discipline this seat represents. Quorum is counted in disciplines
+    # rather than heads, so a board of twelve people who all do the same job is
+    # correctly treated as not quorate.
+    discipline: str = ""
     # Seats this one is chartered to attack. Distinct from `context`: context is
     # material to build on, `challenges` is material to try to break. Pairing a
     # divergent high-temperature seat with a skeptical low-temperature one is
@@ -64,9 +68,28 @@ class Board:
     phases: list[str]
     seats: list[Seat]
     rules: str = ""
+    # The minimum disciplines that must be represented for a vote to count.
+    # Fewer than about five and one specialty captures the room; many more and
+    # nothing gets decided.
+    core_disciplines: list[str] = field(default_factory=list)
 
     def seat(self, key: str) -> Seat | None:
         return next((s for s in self.seats if s.key == key), None)
+
+    def disciplines(self) -> set[str]:
+        return {s.discipline for s in self.seats if s.discipline}
+
+    def missing_disciplines(self) -> list[str]:
+        return [d for d in self.core_disciplines if d not in self.disciplines()]
+
+    def is_quorate(self) -> bool:
+        """A board missing a core discipline is not quorate and its vote does not count.
+
+        This is a question about coverage, not attendance. The failure it guards
+        against is a room that agrees because nobody in it was chartered to
+        raise the objection -- which looks exactly like consensus.
+        """
+        return not self.missing_disciplines()
 
     def by_phase(self) -> dict[str, list[Seat]]:
         grouped: dict[str, list[Seat]] = {phase: [] for phase in self.phases}
@@ -156,6 +179,7 @@ def _seat_from_dict(raw: dict[str, Any], index: int) -> Seat:
         context=[str(c) for c in context],
         retrieval=bool(raw.get("retrieval", True)),
         challenges=[str(c) for c in challenges],
+        discipline=str(raw.get("discipline", "")),
     )
 
 
@@ -221,10 +245,15 @@ def load_board(path: str | Path) -> Board:
                 seen.append(seat.phase)
         phases = seen
 
+    core = raw.get("core_disciplines") or []
+    if not isinstance(core, list):
+        raise BoardError(f"{path}: core_disciplines must be a list of discipline names")
+
     return Board(
         name=str(raw["name"]),
         subject=str(raw["subject"]),
         phases=phases,
         seats=seats,
         rules=str(raw.get("rules") or DEFAULT_RULES),
+        core_disciplines=[str(d) for d in core],
     )
