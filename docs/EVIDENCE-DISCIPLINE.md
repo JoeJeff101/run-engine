@@ -52,7 +52,7 @@ This is the seam that generalizes the pipeline past science. Every high-stakes d
 | PMID | biomedical | citation | `PMID: 23887888` |
 | OpenAlex | scholarly | citation | `https://openalex.org/W2119459576` |
 
-The table lives in [`ledger.py::IDENTIFIER_NAMESPACES`](../src/evidence_pipeline/ledger.py) with each pattern and a worked example. A test asserts **every example matches its own pattern**, which guards the table against a regex that drifts from its documentation.
+The table lives in [`ledger.py::IDENTIFIER_NAMESPACES`](../src/run_engine/evidence/ledger.py) with each pattern and a worked example. A test asserts **every example matches its own pattern**, which guards the table against a regex that drifts from its documentation.
 
 Adding a domain is one tuple entry.
 
@@ -153,8 +153,8 @@ Content is escaped so a pipe in a claim cannot break the table, and the authorit
 ## Promoting
 
 ```bash
-python -m evidence_pipeline.ledger staged.md authoritative.md            # preview
-python -m evidence_pipeline.ledger staged.md authoritative.md --apply    # write
+run-engine promote staged.md authoritative.md            # preview
+run-engine promote staged.md authoritative.md --apply    # write
 ```
 
 Preview prints what would be promoted and, for everything rejected, *why*. **The rejections are the useful output** — they show where the run produced plausible text with nothing resolvable behind it.

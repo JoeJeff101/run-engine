@@ -1,109 +1,88 @@
-# evidence-pipeline
+# run-engine
 
-**A multi-agent pipeline for high-stakes investigation: literature review, prior-art search, due diligence, and regulatory exposure — across scholarly, patent, corporate, and legal sources.**
+**A governed engine for high-stakes decisions: frozen by default, gated by cost of
+falsification, and reporting a probability that only real evidence can move.**
 
-Before you commit capital or a year of work to a thesis, you need ground truth.
+Before you commit capital, or a year of work, or a patient to a protocol, you need to
+know what you actually know. That sounds simple and isn't — not because the analysis is
+hard, but because the failure mode is silent. A plan that has never been tested reads
+exactly like a plan that has. A number nobody sourced looks exactly like a number
+somebody did. And a language model asked to help will produce either one on request,
+fluently.
 
-That sounds simple and isn't. The answer is scattered across journal articles, patent filings, regulatory dockets, corporate filings, and specialist registries that don't talk to each other, use different vocabulary for the same concept, and each demand a different kind of search. Worse, the failure is silent: a search that returns nothing looks exactly like a field that is empty.
+This engine is a machine for keeping those apart. It runs a board of agents over a
+question, stages what they find, refuses to promote anything without a resolvable
+identifier, walks a gate ladder ordered by what each falsification costs, and reports a
+probability alongside the fraction of that probability resting on promoted evidence
+rather than on assumptions.
 
-This system answers the question systematically — surveying what already exists, surfacing the closest prior work, and flagging where a thesis is already crowded. Its output feeds the decisions that come *before* you spend: whether the idea is novel, whether the target is what it claims to be, whether the exposure is real.
+The subject matter is configuration. Two worked instantiations ship with it: a physical
+product venture and a therapeutic repurposing candidate. They share no vocabulary and
+run through identical code.
 
 ---
 
 ## Quickstart
 
-Runs with **no API keys and no network**. Offline mode uses a deterministic model stub and deterministic fake sources, so a fresh clone works immediately.
+Runs with **no API keys and no network**. Offline mode uses a deterministic model stub
+and deterministic fake sources, so a fresh clone works immediately.
 
 ```bash
-git clone https://github.com/JoeJeff101/evidence-pipeline.git
-cd evidence-pipeline
+git clone https://github.com/JoeJeff101/run-engine.git
+cd run-engine
 pip install -e ".[dev]"
 
-pytest                                              # 137 tests, fully offline
-python -m evidence_pipeline.agents.run --offline    # 17-seat board, 4 phases
-python -m evidence_pipeline.demo --offline "your question here"
+pytest                                              # 270 tests, fully offline
+run-engine packs                                    # what is available to run
+run-engine run --pack packs/manufacturing           # one governed run
+run-engine sources --pack packs/manufacturing       # the data layer, and what it needs
 ```
 
-Drop `--offline` to query real databases. The four keyless sources (OpenAlex, Europe PMC, Crossref, Semantic Scholar) need no credentials; key-gated connectors skip themselves and the chain falls through.
+A run writes an immutable archive and a self-contained HTML report:
 
----
-
-## Where this applies
-
-The machinery is domain-neutral. What changes between uses is the roster of seats, the source chain, and which registry counts as authoritative.
-
-| Domain | The question | Registry that settles it | Where it goes wrong |
-|---|---|---|---|
-| **Deep tech / R&D** | Has anyone already built this? Does the mechanism hold? | Patent numbers, DOIs | A prior-art search that finds nothing reads as a clear field, when it's usually a bad query |
-| **Corporate due diligence** | Is the target what it claims? Who actually owns it? | SEC CIK, EDGAR accession | Management narrative gets cited as fact because nobody traced it to a filing |
-| **Financial / market research** | Is the thesis supported or just consensus? | Filings, DOIs for the underlying research | Repetition across secondary sources gets mistaken for corroboration |
-| **Legal / regulatory** | What rule applies, and who has been sanctioned under it? | CFR citations, court dockets | A summary of a rule is treated as the rule |
-| **IP analysis** | How crowded is this space? Who is the closest assignee? | USPTO grants | Patent vocabulary rarely matches the researcher's, so precise queries return nothing |
-
-One thread runs through the right-hand column: **the expensive failure is always a false negative dressed as a clean result.** Most of the engineering here exists to make that failure visible.
-
----
-
-## What it actually does
-
-```mermaid
-flowchart TD
-    Q["Thesis or question"] --> KW["Normalize to keywords"]
-    KW --> INT{"Which question<br/>is this?"}
-
-    INT -->|"what exists?"| C1["OpenAlex → Semantic Scholar → Crossref"]
-    INT -->|"how was it done?"| C2["CORE → Semantic Scholar → Europe PMC"]
-    INT -->|"who owns it?"| C3["PatentsView → OpenAlex"]
-    INT -->|"which entity is this?"| C4["Registry → OpenAlex"]
-
-    C1 --> R["Router<br/>early stop · circuit breaker · TTL cache"]
-    C2 --> R
-    C3 --> R
-    C4 --> R
-
-    R -->|"nothing found"| RF["Reformulate<br/>broaden · pivot · decompose"]
-    RF --> R
-
-    R --> D["Dedup + authority merge"]
-    D --> A["Agent board<br/>17 seats, 4 phases"]
-    A --> S["Staged evidence<br/>(no authority)"]
-    S -.->|"human reviews<br/>and promotes"| L["Evidence ledger<br/>(authoritative)"]
-
-    style L fill:#1f6f3f,color:#fff
-    style S fill:#8a6d1f,color:#fff
-    style R fill:#2b4c7e,color:#fff
-    style RF fill:#8a6d1f,color:#fff
+```
+runs/20260905T143542Z/
+  00_grounding.md              brief + spec + contract + ledger, rebuilt this run
+  T01…T17_*.md                 one note per task in the work chain
+  95_value_of_information.md   what to fund next, and why that one
+  96_promotion_candidates.md   rows waiting on a document
+  97_redteam_verdict.md        adversarial review, before mechanical validation
+  98_lint_report.md            deterministic structural checks
+  99_dossier.md                the compiled artifact this run is judged on
+  _continuity.md               open items, and the plateau flag
+  _prediction_log.jsonl        forecasts, written before the gates ran
+  report.html                  the page you would actually send someone
+  run.json
 ```
 
-**The question determines the source.** "Who has cited this?", "who owns this?", and "which registered entity is this?" are three different questions. Answering all three by throwing keywords at one index is how you confidently miss things.
-
-**A dead end is retried differently, not repeated.** When every source returns nothing, the query is reformulated — broadened, pivoted to its most distinctive term, or decomposed into halves — before anything is reported as absent. The attempts are recorded, so "we found nothing" and "we found nothing after trying it four ways" are distinguishable claims.
-
-**"Unavailable" is never conflated with "nothing found."** A source that times out raises; a source that answers with nothing returns empty. Collapsing those lets a timed-out patent database read as *no prior art exists*.
+Drop `--offline` for a live run against a real model; it needs `ANTHROPIC_API_KEY` and
+says so precisely if it is missing.
 
 ---
 
-## The cognitive engine
+## What you get on run one
 
-This is not an API router with a language model bolted on. The retrieval layer is half the system; the other half is a board of seventeen seats, each with a distinct charter, temperature, and model tier, arranged so the crew's failure modes cancel rather than compound.
+```
+P(success) = 2.4% (80% CrI 0.1%–6.2%) · REAL fraction 0.00
+```
 
-That arrangement exists because a language model left to itself has three reliable defects, and none of them are fixed by a better prompt alone:
+with, printed directly beneath it:
 
-| Defect | What it looks like | The structural answer |
-|---|---|---|
-| **Laziness** | Stops at the first plausible answer; pads thin retrieval with general knowledge | Charters require declared coverage, a named alternative explanation, and an explicit "the context is thin" when it is |
-| **Sycophancy** | Agrees with whatever it was just shown; averages away disagreement | Seats are *chartered to attack* named upstream seats, with adversarial framing separate from ordinary context |
-| **Hallucination** | Emits a well-formed identifier attached to a claim it does not support | Grade is computed from what resolves, not from what the model asserts; untraceable citations are quarantined by a sole writer |
+> This estimate rests almost entirely on priors (REAL fraction 0.00). It is not a
+> forecast — it is the board's stated assumptions, arithmetically combined. Treat it as
+> a statement of what would have to be true, and fund the top-ranked experiment.
 
-The deliberate friction is the product. A high-temperature Domain Generalist is *supposed* to overreach — and a cold, skeptical Reproducibility Reviewer is chartered to check exactly that seat. A tournament judge does not pick a winner; it scores a fixed rubric, and the **code** computes the ranking, so the most confident-sounding champion cannot win on tone.
-
-Full detail: **[docs/AGENT-PERSONAS.md](docs/AGENT-PERSONAS.md)**.
+Both shipped packs have an **empty evidence ledger**, on purpose. Every gate reports
+PENDING and the headline rests entirely on priors, because that is the truthful output
+for a plan nobody has tested. Seeding the demo with invented REAL rows would have made
+the screenshot better and inverted the entire point of the project.
 
 ---
 
-## The part I'd defend hardest
+## The part I would defend hardest
 
-The obvious objection to any LLM research tool: **how do you know it didn't make this up?**
+The obvious objection to any LLM decision tool: **how do you know it didn't make this
+up?**
 
 The model is never trusted with the authoritative record.
 
@@ -114,38 +93,166 @@ The model is never trusted with the authoritative record.
 | Authority | None | Authoritative |
 | Requires | Nothing | A resolvable primary-source identifier |
 
-Agents may only *stage*. Promotion is a separate command a person runs: preview by default, writes only under `--apply`, filters to rows carrying a resolvable identifier, refuses duplicates, backs up first.
+The guarantee is not "agents never write the letters REAL" — a ledger is a text file and
+nothing can stop them. The guarantee is that **saying REAL is not how a row becomes
+REAL**. Promotion is a separate command a person runs, it previews by default, and it
+refuses any row whose citation does not match a known identifier namespace.
 
-And the grade cannot be talked upwards. A claim naming a thing in an authoritative register — a patent number, a CIK, a docket, a CFR citation — is **REAL**. A claim backed only by a document that discusses it is **EST**. Neither is **WEAK**, and WEAK is not promotable at all. No amount of agent confidence moves a row up a grade; only a better identifier does.
+That rule then propagates into the arithmetic: only promoted rows update a gate's
+posterior. Adding an EST row leaves the reported probability **bit-identical**, which is
+a testable claim rather than a promise, and there is a test that asserts exactly it.
 
-Enforced in code rather than in a prompt, because *a prompt is a request and code is a constraint*. The asymmetry is deliberate: a fabricated number wearing a REAL tag is far worse than an honest gap. Gaps are visible and get filled. Fabrications propagate.
-
-See **[docs/EVIDENCE-DISCIPLINE.md](docs/EVIDENCE-DISCIPLINE.md)**.
+Enforced in code rather than in a prompt, because *a prompt is a request and code is a
+constraint*. The asymmetry is deliberate: a fabricated number wearing a REAL tag is far
+worse than an honest gap. Gaps are visible and get filled. Fabrications propagate.
 
 ---
 
-## Four orchestration topologies
+## The eight invariants
 
-The board is **configuration**; the orchestration is the product. Seats, phases, charters, tiers, and adversarial pairings live in [`boards/example_board.yaml`](boards/example_board.yaml) — nothing in the code knows what the board is investigating.
+Remove any one and this becomes an ordinary planning document with more steps. Each has
+a test named after it, so they read as sentences in the test output.
 
-| Topology | Shape | Use when |
+1. **Frozen by default.** Exploration requires an explicit flag or new REAL evidence. The
+   moment divergence becomes the default, you have a pivot machine.
+2. **Only REAL rows move the number**, and exactly one script performs promotion, on
+   presentation of a document.
+3. **Gates ordered by cost of falsification.** Cheapest first — subject only to what each
+   gate needs to exist before it can be run.
+4. **Failure defunds downstream.** A red gate stops the spending the same day. This is
+   the rule that saves the most money and is broken the most often.
+5. **Generation and adjudication stay separate.** The seat that signs the dossier owns no
+   other task in the chain.
+6. **One master metric, with a do-no-harm clause.** A performance target without a
+   survival constraint produces plans that win and kill the company.
+7. **Two keys for a spec change.** A vote *and* an independent ratification, then a
+   version bump with a diff. Never an edit.
+8. **Re-ground every agent every run.** Brief, current spec, persona, ledger — reloaded.
+   Continuity comes from artifacts, never from memory.
+
+---
+
+## How it works
+
+```mermaid
+flowchart TD
+    G["Ground every agent<br/>brief · spec · persona · ledger"] --> P0{"Phase 0<br/>diverge?"}
+    P0 -->|"frozen (default)"| V["Vote pending amendments"]
+    P0 -->|"--attack"| A["Attack run<br/>own file"] --> V
+    P0 -->|"--divergence"| D["Tournament<br/>own file"] --> V
+    V --> B["Board · N seats · 4 phases"]
+    B --> W["Work chain T01…Tn"]
+    W --> F["Finalize<br/>separate actor"]
+    F --> DOS["Dossier"] --> RT["Red team"] --> L["Lint"] --> VOI["Value of information"]
+
+    SPEC["Spec vN<br/>priors · gates · metric"] --> LAD["Gate ladder<br/>cheapest falsification first"]
+    LAD --> Q{"Any gate fails?"}
+    Q -->|"yes"| STOP["Defund downstream<br/>route to lock design"]
+    Q -->|"all clear"| LED["Evidence ledger"]
+
+    VOI --> CONT["Continuity + plateau"]
+    CONT --> RAT{"Ratify amendment?"}
+    RAT -->|"vote + ratification"| CHG["Changelog + version bump"] --> SPEC
+    CONT -->|"feeds next run"| G
+    LED --> PROMO["Promotion script<br/>human, needs a document"]
+    PROMO -->|"new REAL thaws the freeze"| P0
+
+    style LED fill:#1f6f3f,color:#fff
+    style PROMO fill:#1f6f3f,color:#fff
+    style STOP fill:#a8412a,color:#fff
+    style P0 fill:#2b4c7e,color:#fff
+```
+
+Full specification, with the map from each part to the code that enforces it:
+**[docs/RUN-ENGINE.md](docs/RUN-ENGINE.md)**.
+
+---
+
+## The probability
+
+```
+P(success) = P(G0) × P(G1|G0) × P(G2|G0,G1) × P(G3|…) × P(market | all gates)
+```
+
+A product, not an average, because the gates are conditional. Each term is a Beta
+posterior: a prior argued in the boardroom and written into the spec, updated only by
+promoted REAL rows.
+
+Three figures are reported, never one — the mean, an 80% credible interval, and the
+**REAL fraction**. The third is the one that matters. A plan at 62% with a REAL fraction
+of 0.05 is not a 62% plan.
+
+No SciPy: the incomplete beta function and its inverse are implemented in
+[`probability.py`](src/run_engine/probability.py), because a decision engine that cannot
+run without a numerical stack is one people will not run. The interval on the product is
+obtained by exact moment-matching rather than sampling, so two runs of the same pack are
+byte-identical — reproducibility is a property this thing sells, so it is tested rather
+than asserted.
+
+**Value of information** decides what to fund next:
+
+```
+VoI per unit cost = ( Var(term) − E[Var(term | experiment)] ) × stake ÷ cost
+```
+
+which for a Beta-Binomial has an exact closed form. This is *why* the cheap demand test
+runs before the expensive pilot — it collapses roughly ten times more variance per unit
+spent. The ladder ordering falls out of the arithmetic instead of being imposed on it.
+
+---
+
+## Two instantiations
+
+Everything domain-specific is a directory of YAML. The engine contains none of it.
+
+| | `packs/manufacturing` | `packs/therapeutic` |
 |---|---|---|
-| [`sequential`](src/evidence_pipeline/agents/sequential.py) | Handoff with declared context and challenges | Order matters; each step builds on or attacks the last |
-| [`tournament`](src/evidence_pipeline/agents/tournament.py) | Temperature-diverged fan-out → scored judge | Several approaches compete and one must be chosen defensibly |
-| [`pipeline`](src/evidence_pipeline/agents/pipeline.py) | Thread-per-role, **sole writer** | Throughput matters and verification must not be routable-around |
-| [`claims`](src/evidence_pipeline/agents/claims.py) | File-locked worker pool | Separate processes share a work list and must not duplicate |
+| Question | Commit tooling capital to a countertop appliance? | Advance an approved drug into a second indication? |
+| Substrate | Working capital: cash → inventory → committed sale → revenue | Patient exposure: untreated state → response → durable outcome |
+| The irreversible step | The tooling PO | Opening enrolment |
+| The key | Liquidation, tooling resale, contract exits | Stopping rules, rescue path, data monitoring committee |
+| Crux | Does landed COGS at the minimum financeable quantity leave margin above CAC? | Is the retrospective signal real, or confounded by indication? |
+| Registry of record | EDGAR, USITC, USPTO, CPSC | ClinicalTrials.gov, DailyMed, FAERS |
+| Seats / tasks | 17 / 17 | 11 / 12 |
 
-See **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)**.
+The chain length, the roster, the gates and the sources all differ. The governance, the
+freeze, the ledger, the ladder and the arithmetic are the same code.
 
 ---
 
-## Sources
+## Testing
 
-Nine connectors behind one signature; adding a tenth is one function and one registry entry. Full reference, access terms, documented limits, and worked pseudocode for wiring up enterprise sources like EDGAR or court archives: **[docs/SOURCES.md](docs/SOURCES.md)**.
+```
+270 passed in 1.35s
+```
 
-Some databases that would improve coverage are deliberately **not** automated, because their terms don't permit it. Those run as a *human queue*: the pipeline emits the exact search strings, a person runs them, and results return through the same staging path with the same identifier requirements.
+Every source adapter is replaced with a deterministic fake for every test, and the HTTP
+layer is patched to raise. Total replacement is deliberate: if only the expected
+adapters were faked, a routing bug would reach a live API and the test would still pass
+— slowly, while making unattributed network calls. The live model backend is tested
+against an injected fake client for the same reason.
 
-That's a design position, not an oversight. A pipeline that quietly scrapes a subscription database produces results its owner cannot publish, cannot cite in a filing, and cannot defend. The queue is slower and correct.
+Execution is deterministic: the offline backend derives responses from a hash of its
+inputs, so the same pack produces the same transcript every run.
+
+There is also a goal condition — `scripts/verify_goal.sh` — which checks the whole
+system end to end, including a cold-clone install-and-run, and exits non-zero if any
+criterion fails.
+
+---
+
+## What this does not do
+
+- **It does not make a model honest.** It makes a model's dishonesty visible and inert.
+- **It does not produce a calibrated probability on run one.** It produces an auditable
+  one. Calibration is a measurement you earn over several runs, and the prediction log
+  exists so that it can be earned.
+- **It does not decide anything.** Every gate result, every promotion, every ratification
+  is an act by a person. The engine's contribution is that those acts are recorded, in
+  order, with what was believed at the time.
+- **It does not scrape sources whose terms forbid it.** Those run as a human queue: the
+  engine emits the exact search strings, a person runs them, and the results return
+  through the same staging path. Slower and correct.
 
 ---
 
@@ -153,23 +260,33 @@ That's a design position, not an oversight. A pipeline that quietly scrapes a su
 
 The hard part wasn't the AI. It was the workflow.
 
-I mapped how this research gets done by hand, step by step, then worked out which steps an agent could own, which required a human decision, and where a wrong answer would be expensive. Each agent has a narrow job and hands off to the next, so every output traces back to a source and can be checked rather than taken on faith.
+I mapped how this kind of decision gets made by hand, step by step, then worked out
+which steps an agent could own, which required a human decision, and where a wrong
+answer would be expensive. Each agent has a narrow job and hands off to the next, so
+every output traces back to a source and can be checked rather than taken on faith.
 
-Most of what's in this repository is a consequence of that mapping rather than of anything model-specific — the rate governor, the variant cap, the circuit breaker, the reformulation ladder, the staging gate, the sole writer, the scored judge. Several exist because something went wrong first, and where that's true the code says so at the call site.
+Most of what is in this repository is a consequence of that mapping rather than of
+anything model-specific — the freeze, the two-key amendment, the cost-ordered ladder,
+the defunding rule, the staging gate, the sole writer, the deterministic linter, the
+prediction log. Several exist because something went wrong first, and where that is
+true the code says so at the call site.
+
+Three linter false positives were found by running the linter on the engine's own
+output, and all three are fixed and commented. Holding our own writing to the rule we
+impose on everyone else's seemed like the minimum.
 
 ---
 
-## Testing
+## Documentation
 
-```
-137 passed in 0.37s
-```
-
-Every source adapter is replaced with a deterministic fake for every test, and the HTTP layer is patched to raise. Total replacement is deliberate: if only the expected adapters were faked, a routing bug would reach a live API and the test would still pass — slowly, while making unattributed network calls.
-
-The suite covers intent precedence, fallback and breaker behaviour, the lean-budget case proving a healthy primary means the fallback is *never invoked*, dead-end reformulation, dedup and authority ranking, budget caps, cache hit/miss, identifier namespaces across five domains, the judge's scoring and tie-breaking, adversarial pairing validation, the staging grade rule and its cross-module contract with promotion, graceful degradation when the network raises, and all four agent topologies.
-
-Execution is deterministic: the offline backend derives responses from a hash of its inputs, so the same board produces the same transcript every run.
+| | |
+|---|---|
+| [docs/RUN-ENGINE.md](docs/RUN-ENGINE.md) | The full specification, mapped to the code that enforces it |
+| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Retrieval and orchestration layers in detail |
+| [docs/EVIDENCE-DISCIPLINE.md](docs/EVIDENCE-DISCIPLINE.md) | Grades, identifier namespaces, and the promotion path |
+| [docs/AGENT-PERSONAS.md](docs/AGENT-PERSONAS.md) | Seat charters, tiers, and adversarial pairings |
+| [docs/SOURCES.md](docs/SOURCES.md) | Connectors, access terms, and how to add one |
+| [docs/CLAIMS.md](docs/CLAIMS.md) | Every claim on this page, with the file or test that backs it |
 
 ---
 

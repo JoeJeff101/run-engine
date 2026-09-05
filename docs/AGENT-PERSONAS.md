@@ -16,7 +16,7 @@ Charters are the weakest of the three and the most visible. Enforcement is the s
 
 ## 1. The code of ethics
 
-Every seat receives the same twelve operating rules, in three groups. They live in [`board.py::DEFAULT_RULES`](../src/evidence_pipeline/agents/board.py) and are overridable per board.
+Every seat receives the same twelve operating rules, in three groups. They live in [`board.py::DEFAULT_RULES`](../src/run_engine/agents/board.py) and are overridable per board.
 
 ### A. Honesty
 

@@ -87,7 +87,7 @@ The only decision that carries weight is **`authority` and `entity_id`**, becaus
 A corporate filing is a registry object, not a document about one — so it resolves to REAL.
 
 ```python
-# src/evidence_pipeline/sources/edgar.py
+# src/run_engine/retrieval/sources/edgar.py
 from ..models import Record
 from ..query import excerpt_around, keywordize
 from .base import clean, contact_email, http_get, make_record

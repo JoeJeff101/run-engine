@@ -26,7 +26,7 @@ flowchart LR
 
 Precedence, most specific first: **explicit intent → scope → seat profile → default**. An unknown intent is filtered out and resolution falls through rather than raising — a typo in a seventeen-seat board should degrade to default behaviour, not abort at seat nine.
 
-Seven intents ship, each with a ranked chain and a designated `primary_db`. See [`profiles.py`](../src/evidence_pipeline/profiles.py): pure configuration, no I/O, so it reads as documentation and is asserted against directly in tests.
+Seven intents ship, each with a ranked chain and a designated `primary_db`. See [`profiles.py`](../src/run_engine/retrieval/profiles.py): pure configuration, no I/O, so it reads as documentation and is asserted against directly in tests.
 
 ### The chain walk
 
