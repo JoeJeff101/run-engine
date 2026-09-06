@@ -28,7 +28,7 @@ import json
 import re
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any
+from typing import Any, Sequence
 
 from .backend import LLMBackend
 
@@ -477,3 +477,53 @@ def red_team(
         "survives": survives,
         "notes": notes,
     }
+
+
+def challenge_evidence(
+    rows: Sequence[Any],
+    backend: LLMBackend,
+    context: str = "",
+    tier: str = "heavy",
+) -> set[str]:
+    """Ask an adversary which promoted rows do not support what they are cited for.
+
+    The division of labour is the point. The model does the one thing it is good
+    at -- reading a claim against its citation and noticing that the citation
+    does not say what the row says it says -- and it returns *identifiers only*.
+    It is never asked what the probability should be, because a number produced
+    by a model is an opinion wearing a decimal point, and the engine already has
+    an exact procedure for turning evidence into a probability.
+
+    So the adversary names rows; the caller demotes exactly those rows and runs
+    the same arithmetic again. The gap between the two results is a measurement
+    of how much of the headline is resting on evidence a hostile reader rejects.
+    """
+    real = [r for r in rows if str(getattr(r, "grade", "")).upper() == "REAL"]
+    if not real:
+        return set()          # nothing promoted, nothing to challenge, no call made
+
+    listing = "\n".join(
+        f"{getattr(r, 'id', '') or '?'} | {getattr(r, 'topic', '')} | "
+        f"{getattr(r, 'claim', '')} = {getattr(r, 'value', '')} | cited: {getattr(r, 'source', '')}"
+        for r in real
+    )
+    response = backend.complete(
+        system=(
+            "You are a hostile reviewer auditing an evidence ledger. For each row, "
+            "ask only this: does the cited identifier actually establish the stated "
+            "value? A citation that is merely adjacent to the claim, or that supports "
+            "a weaker version of it, does NOT establish it. Do not consider whether "
+            "the claim is plausible. Reply with the ids you cannot accept, one per "
+            "line, and nothing else. Reply NONE if every row holds."
+        ),
+        prompt=f"{context}\n\nRows:\n{listing}\n\nRESPOND_WITH: ids",
+        tier=tier,
+        temperature=0.0,
+        max_tokens=512,
+    )
+    if "NONE" in response.upper():
+        return set()
+    known = {str(getattr(r, "id", "")) for r in real if getattr(r, "id", "")}
+    # Only ids that exist are honoured. An adversary inventing a row id must not
+    # be able to demote anything, and must not be able to error the run either.
+    return {token for token in re.findall(r"[A-Za-z0-9_-]+", response) if token in known}

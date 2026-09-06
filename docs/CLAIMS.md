@@ -19,15 +19,17 @@ stable; prefer them when a line has moved.
 |---|---|
 | "Promotion is a separate command a person runs" | [`evidence/ledger.py:315`](../src/run_engine/evidence/ledger.py) — `promote()`, `apply=False` by default |
 | "It refuses any row whose citation does not match a known identifier namespace" | [`evidence/ledger.py:95`](../src/run_engine/evidence/ledger.py) — `PRIMARY_SOURCE_RE`, built from the namespace table |
-| "Saying REAL is not how a row becomes REAL" | `test_only_the_promotion_script_writes_a_real_row` — an agent-authored REAL row with no identifier is staged, then rejected at promotion |
+| "Saying REAL is not how a row becomes REAL" | `test_only_the_promotion_script_writes_a_real_row` — an agent-authored REAL row with no identifier is staged, then rejected at promotion; `test_a_citation_identifier_cannot_be_promoted_to_real` — the harder case: a REAL row citing a DOI is promoted at EST, because promotion recomputes the grade rather than reading it |
+| "Promotion may lower a grade and never raise one" | `test_promotion_never_raises_a_grade` — an EST row citing a register stays EST; a grade is earned by re-staging, not granted at the gate |
 | "WEAK is not promotable at all" | [`evidence/ledger.py:103`](../src/run_engine/evidence/ledger.py) — `PROMOTABLE = ("REAL", "EST")`; asserted in `tests/test_dedup_and_ledger.py` |
-| "Grade is computed from what resolves, not from what the model asserts" | [`evidence/ledger.py:132`](../src/run_engine/evidence/ledger.py) — `grade_for()` reads the record's identifier, never its prose |
+| "Grade is computed from what resolves, not from what the model asserts" | [`evidence/ledger.py`](../src/run_engine/evidence/ledger.py) — `grade_for()` reads a record's identifier, `grade_for_source()` reads a row's citation, and `promote()` calls the second rather than trusting the staged cell; `test_grade_is_a_function_of_the_identifier_namespace` |
 
 ## The arithmetic
 
 | Claim | Backing |
 |---|---|
 | "Only promoted rows update a gate's posterior" | [`probability.py:290`](../src/run_engine/probability.py) — the single `if grade != "REAL": continue` |
+| "A ratio is read as a rate when the gate declared a target, and as trials when it did not" | [`probability.py`](../src/run_engine/probability.py) `score()`; `test_a_declared_threshold_reads_a_ratio_as_a_rate_not_as_trials`, `test_a_gate_that_passes_on_its_written_condition_does_not_lower_the_headline`, `test_a_gate_without_a_threshold_still_takes_ratios_as_trials` |
 | "Adding an EST row leaves the probability bit-identical" | `test_est_rows_cannot_move_the_number` — compares `mean`, `lo`, `hi` and the full dict |
 | "A product, not an average" | `test_the_estimate_is_a_product_of_its_terms_not_an_average` — two 0.5 terms give 0.25 |
 | "No SciPy" | [`probability.py:101`](../src/run_engine/probability.py) `betainc`, [`:114`](../src/run_engine/probability.py) `beta_quantile`; `pyproject.toml` lists only `requests` and `PyYAML` |
@@ -38,6 +40,19 @@ stable; prefer them when a line has moved.
 | "A low REAL fraction says so in words" | `test_the_report_names_three_figures_and_flags_a_guess` — asserts "not a forecast" appears |
 | "VoI has an exact closed form" | [`voi.py:85`](../src/run_engine/voi.py) — `expected_posterior_variance`; verified against the algebra in `test_expected_posterior_variance_matches_the_closed_form` |
 | "The cheap demand test collapses ~10× more variance per unit spent" | `test_voi_ranks_the_cheap_demand_test_above_the_pilot` — asserts a factor of 5 or better, on the packs' real numbers |
+
+## Reasoning and independence
+
+| Claim | Backing |
+|---|---|
+| "Only attacking seats are routed to another provider" | [`agents/backend.py`](../src/run_engine/agents/backend.py) `resolve_tier()`; `test_only_attacking_seats_are_routed_to_the_outside_tier` |
+| "Diverse routing degrades loudly when no outside model is configured" | [`agents/backend.py`](../src/run_engine/agents/backend.py) `diversity_note()`; `test_diverse_routing_degrades_loudly_when_no_outside_model_is_configured`; every run writes `00_diversity.md` |
+| "The adversary names rows; the engine computes the number" | [`agents/tournament.py`](../src/run_engine/agents/tournament.py) `challenge_evidence()` returns identifiers only; the demotion and re-estimate happen in [`engine.py`](../src/run_engine/engine.py) |
+| "An invented row id cannot demote anything" | `test_the_adversary_names_rows_and_cannot_invent_them` — ids not present in the ledger are discarded |
+| "An empty ledger is never sent to the adversary" | `test_an_empty_ledger_is_never_sent_to_the_adversary` — no promoted rows, no call |
+| "A hostile reading produces a second, lower headline" | `test_a_hostile_reading_of_the_ledger_produces_a_second_headline`; both figures land in `run.json` |
+| "Credibility is a property of the source, not the finding" | [`evidence/models.py`](../src/run_engine/evidence/models.py) `AUTHORITY_ORDER`, stamped per connector, ranked in [`evidence/dedup.py`](../src/run_engine/evidence/dedup.py) `merge_records()` |
+| "Deterministic engine, advancing input" | `test_two_offline_runs_produce_identical_documents` (the engine) and `test_exploration_is_frozen_until_evidence_thaws_it` (the input) |
 
 ## The eight invariants
 

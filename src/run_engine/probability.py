@@ -203,6 +203,30 @@ def observation(value: str) -> tuple[float, float] | None:
     return None
 
 
+def score(value: str, *, min_rate: float | None = None) -> tuple[float, float] | None:
+    """An observation, with a gate's declared threshold applied when it has one.
+
+    ``observation`` answers "what does this cell literally say?". This answers
+    the question the ladder and the arithmetic both actually ask: "did the gate
+    clear?" They differ only for ratios, and only when the gate declared a
+    target -- at which point the ratio is a measured rate to be compared against
+    that target, and the result is a verdict rather than a pile of trials.
+
+    Without the threshold, ``25/1000`` against G0 reads as 25 successes in 1,000
+    attempts and collapses the term to 0.027 -- so logging a demand test that
+    passed exactly on its written condition made the plan look fifteen times
+    worse. With it, the same row is one clean pass.
+    """
+    obs = observation(value)
+    if obs is None or min_rate is None:
+        return obs
+    successes, failures = obs
+    trials = successes + failures
+    if trials <= 0:
+        return None
+    return (1.0, 0.0) if successes / trials >= min_rate else (0.0, 1.0)
+
+
 def _rows_for(rows: Iterable, term: str) -> list:
     out = []
     for row in rows:
@@ -271,16 +295,22 @@ def estimate(
     rows: Sequence = (),
     *,
     mass: float = 0.8,
+    thresholds: Mapping[str, float] | None = None,
 ) -> Estimate:
     """Combine per-term Beta posteriors into one auditable probability.
 
     ``priors`` maps a term name (a gate id, or ``"market"``) to its Beta prior.
     ``rows`` are ledger rows; only those graded REAL are consulted, and only
     those whose value parses as an observation change anything.
+
+    ``thresholds`` maps a term to the pass rate its spec declares, for gates
+    whose ratio rows are measured rates rather than samples of trials. A term
+    with no threshold behaves exactly as it always has.
     """
     if not priors:
         raise ValueError("no priors: there is nothing to estimate")
 
+    thresholds = thresholds or {}
     terms: list[TermEstimate] = []
     for term, (alpha, beta) in priors.items():
         prior = Beta(float(alpha), float(beta))
@@ -289,7 +319,7 @@ def estimate(
             # The single line that enforces "only REAL rows move the number".
             if str(getattr(row, "grade", "")).upper() != "REAL":
                 continue
-            obs = observation(getattr(row, "value", ""))
+            obs = score(getattr(row, "value", ""), min_rate=thresholds.get(term))
             if obs is None:
                 continue
             successes += obs[0]
@@ -325,3 +355,8 @@ def priors_from_spec(spec) -> dict[str, tuple[float, float]]:
     }
     priors[MARKET] = tuple(spec.market_prior)  # type: ignore[assignment]
     return priors
+
+
+def thresholds_from_spec(spec) -> dict[str, float]:
+    """Declared pass rates, for the gates that measure one. Usually sparse."""
+    return {g.id: g.min_rate for g in spec.gates if g.min_rate is not None}

@@ -190,10 +190,31 @@ class GateSpec:
     # real input costs is nearly free to run and still cannot go first, because
     # it has nothing real to stress until an earlier gate has produced it.
     depends_on: tuple[str, ...] = ()
+    # How to read a ratio row for this gate, and the only reason this field
+    # exists: a ratio can mean two incompatible things and the ledger cannot
+    # tell them apart.
+    #
+    #   absent  -- the ratio is a Bernoulli sample of the gate event. "40 of 50
+    #              stress-grid cells held" is 40 successes and 10 failures, and
+    #              updates the posterior directly. This is the common case.
+    #   present -- the ratio is a *rate measured against a target*, and this is
+    #              the target. "25 pre-orders per 1,000 qualified clicks" is a
+    #              pass at 0.025, not 25 successes in 1,000 trials of the gate.
+    #
+    # Read the second as the first and a gate that passed exactly on its written
+    # condition drops the headline by a factor of fifteen, which is what used to
+    # happen. Because the target lives in the spec, moving it is an amendment --
+    # a vote, a ratification and a changelog entry -- rather than an edit.
+    min_rate: float | None = None
 
     def __post_init__(self) -> None:
         if self.cost < 0:
             raise SpecError(f"gate {self.id}: cost of falsification cannot be negative")
+        if self.min_rate is not None and not 0.0 <= self.min_rate <= 1.0:
+            raise SpecError(
+                f"gate {self.id}: min_rate is a rate and must lie in [0, 1]; got "
+                f"{self.min_rate}. A threshold of '25 per 1,000' is 0.025."
+            )
         if self.prior_alpha <= 0 or self.prior_beta <= 0:
             raise SpecError(f"gate {self.id}: Beta prior parameters must be positive")
         if not self.pass_condition.strip():
@@ -360,6 +381,8 @@ class Spec:
                 pass_condition=str(entry.get("pass_condition", "")),
                 requirement_set=str(entry.get("requirement_set", "")),
                 depends_on=tuple(str(d) for d in entry.get("depends_on", []) or []),
+                min_rate=(None if entry.get("min_rate") is None
+                          else float(entry["min_rate"])),
             ))
 
         req_sets = tuple(

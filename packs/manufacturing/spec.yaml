@@ -56,6 +56,10 @@ gates:
       at least 25 pre-orders from 1,000 qualified clicks at the target price, with
       card capture, measured in the ad platform and the storefront export
     requirement_set: durability
+    # The pass condition above, in machine-readable form: 25 per 1,000 clicks.
+    # Without this a row logged as "25/1000" -- the gate passing exactly on its
+    # written condition -- reads as a 2.5% success rate and craters the term.
+    min_rate: 0.025
     prior: {alpha: 2, beta: 3}
   - id: G1
     question: Does it work for real buyers in real kitchens?
