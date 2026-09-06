@@ -23,7 +23,7 @@ from typing import Any, Callable
 
 from ..evidence.ledger import Row, StagingLedger, row_from_record
 from ..evidence.models import ResearchResult
-from .backend import CallCapExceeded, LLMBackend
+from .backend import CallCapExceeded, LLMBackend, resolve_tier
 from .board import Board, Seat
 
 # The retrieval context slot. Bounded per seat so one enthusiastic seat cannot
@@ -116,12 +116,20 @@ def run_board(
     staging: StagingLedger | None = None,
     max_tokens: int = 2048,
     on_seat: Callable[[SeatResult], None] | None = None,
+    diverse: bool = False,
 ) -> BoardRun:
-    """Execute a board seat by seat, chaining context forward."""
+    """Execute a board seat by seat, chaining context forward.
+
+    ``diverse`` routes every seat chartered to attack another onto the outside
+    tier, so an attack is not checked by the same training distribution that
+    produced what it is attacking.
+    """
     run = BoardRun(board=board.name, subject=board.subject)
     done: dict[str, SeatResult] = {}
 
     for seat in board.seats:
+        # A seat that challenges another is the one worth making independent.
+        tier = resolve_tier(seat.tier, diverse=diverse, attacks=bool(seat.challenges))
         retrieval_text = ""
         sources_used: list[str] = []
         records_seen = 0
@@ -158,7 +166,7 @@ def run_board(
             output = backend.complete(
                 system=seat.system_prompt(board.subject, board.rules),
                 prompt=prompt,
-                tier=seat.tier,
+                tier=tier,
                 temperature=seat.temperature,
                 max_tokens=max_tokens,
             )
@@ -167,7 +175,7 @@ def run_board(
             # Hitting the cap ends the board cleanly with partial results,
             # rather than throwing away everything already produced.
             run.results.append(
-                SeatResult(seat.key, seat.title, seat.phase, "", seat.tier, error=str(exc))
+                SeatResult(seat.key, seat.title, seat.phase, "", tier, error=str(exc))
             )
             break
         except Exception as exc:
@@ -178,7 +186,7 @@ def run_board(
             title=seat.title,
             phase=seat.phase,
             output=output,
-            tier=seat.tier,
+            tier=tier,
             sources_used=sources_used,
             records_seen=records_seen,
             error=error,

@@ -34,9 +34,32 @@ TIER_ENV = {
     "heavy": "MODEL_HEAVY",
     "light": "MODEL_LIGHT",
     "research": "MODEL_RESEARCH",
+    # The outside view. Deliberately a *different vendor* from the others, and
+    # the only tier whose value is chosen for who trained it rather than for how
+    # capable it is. See OUTSIDE below.
+    "outside": "MODEL_OUTSIDE",
 }
 
-TIER_FALLBACK = {"heavy": "tier:heavy", "light": "tier:light", "research": "tier:research"}
+TIER_FALLBACK = {
+    "heavy": "tier:heavy", "light": "tier:light", "research": "tier:research",
+    "outside": "tier:outside",
+}
+
+# Why a tier exists for provenance rather than capability
+# ------------------------------------------------------
+# Two seats running the same model do not disagree independently. They share a
+# training distribution, so they share the things that distribution got wrong,
+# and an adversarial pairing between them checks style rather than substance --
+# the attacker cannot see the blind spot it was trained into, because the target
+# was trained into the same one.
+#
+# Routing an attacker to a model from a different vendor does not make it
+# smarter. It makes its errors *uncorrelated with its target's*, which is the
+# only property that matters when the seat's job is to find what another seat
+# missed. Cross-provider disagreement is therefore a signal in its own right:
+# when the outside seat objects, the objection is more likely to be about the
+# claim than about a shared habit of thought.
+OUTSIDE = "outside"
 
 # Indicative USD per million tokens (input, output). Real numbers vary by
 # provider and change often; override via ``PRICES`` for accurate accounting.
@@ -47,11 +70,43 @@ PRICES: dict[str, tuple[float, float]] = {
     "heavy": (5.00, 25.00),
     "light": (3.00, 15.00),
     "research": (1.25, 10.00),
+    "outside": (5.00, 15.00),
 }
 
 
 def model_for(tier: str) -> str:
     return os.environ.get(TIER_ENV.get(tier, ""), "") or TIER_FALLBACK.get(tier, "tier:light")
+
+
+def tier_is_configured(tier: str) -> bool:
+    """Whether this tier resolves to a real model id rather than a placeholder."""
+    return bool(os.environ.get(TIER_ENV.get(tier, ""), ""))
+
+
+def resolve_tier(tier: str, *, diverse: bool = False, attacks: bool = False) -> str:
+    """The tier a seat actually runs at.
+
+    In diverse mode a seat that is chartered to attack another is routed to the
+    outside tier, because an attacker sharing its target's training distribution
+    shares its blind spots. If no outside model is configured the seat keeps its
+    declared tier -- degrading loudly beats pretending to an independence the
+    run does not have, and ``diversity_note`` says so in the archive.
+    """
+    if diverse and attacks and tier_is_configured(OUTSIDE):
+        return OUTSIDE
+    return tier
+
+
+def diversity_note(diverse: bool) -> str:
+    """One line for the run record about how independent the attacks really were."""
+    if not diverse:
+        return ("Attacks ran on the same provider as their targets: disagreement here "
+                "is evidence about the argument, not about the model.")
+    if tier_is_configured(OUTSIDE):
+        return (f"Diverse routing ON: attacking seats ran on {model_for(OUTSIDE)}, a "
+                f"different provider from their targets.")
+    return ("Diverse routing REQUESTED but MODEL_OUTSIDE is unset, so attacking seats "
+            "ran on their declared tier. The attacks are not provider-independent.")
 
 
 @runtime_checkable

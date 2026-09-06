@@ -68,6 +68,7 @@ def cmd_run(args) -> int:
         offline=args.offline,
         attack=args.attack,
         divergence=args.divergence,
+        diverse=args.diverse,
         budget=args.budget,
         runs_dir=Path(args.runs_dir),
         evidence=Path(args.evidence) if args.evidence else _default_evidence(pack),
@@ -206,6 +207,9 @@ def build_parser() -> argparse.ArgumentParser:
                    help="commission a run whose only job is to kill the plan")
     r.add_argument("--divergence", action="store_true",
                    help="score alternatives against the same master metric")
+    r.add_argument("--diverse", action="store_true",
+                   help="route attacking seats to MODEL_OUTSIDE, so an attack does not "
+                        "share its target's training blind spots")
     r.add_argument("--budget", default="lean", choices=["lean", "standard", "deep"])
     r.add_argument("--evidence", help="path to the authoritative ledger")
     r.add_argument("--staged", help="path agents may stage proposals to")

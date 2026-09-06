@@ -19,6 +19,7 @@ from run_engine.gates import (
 )
 from run_engine.probability import (
     Beta, MARKET, betainc, beta_quantile, estimate, observation, priors_from_spec,
+    score, thresholds_from_spec,
 )
 from run_engine.spec.model import GateSpec, MasterMetric, Spec
 from run_engine.voi import Experiment, expected_posterior_variance, rank, top_pick
@@ -215,6 +216,48 @@ def test_observation_parses_only_the_forms_it_documents():
     assert observation("a promising conversation") is None
     assert observation("900/50") is None, "more successes than trials is not an observation"
     assert observation("") is None
+
+
+def test_a_declared_threshold_reads_a_ratio_as_a_rate_not_as_trials():
+    """The bug this fixes: G0's written pass condition is "at least 25 pre-orders
+    from 1,000 qualified clicks". Logged in its own units as "25/1000" and read
+    as a Bernoulli sample, a gate that passed *exactly on its written condition*
+    dropped the headline from 2.4% to 0.16% -- a fifteenfold penalty for
+    succeeding. The ratio was a measured rate all along, and the threshold it
+    should be measured against was sitting in the spec as prose.
+    """
+    # No threshold: a ratio is a sample of trials. "40 of 50 grid cells held" is
+    # exactly that, and must keep working.
+    assert score("40/50") == (40.0, 10.0)
+    assert score("pass") == (1.0, 0.0)
+
+    # With one: the same string is a rate, compared against the target.
+    assert score("25/1000", min_rate=0.025) == (1.0, 0.0), "25 per 1,000 clears 25 per 1,000"
+    assert score("24/1000", min_rate=0.025) == (0.0, 1.0), "just under is a fail, not a nudge"
+    assert score("pass", min_rate=0.025) == (1.0, 0.0), "an explicit verdict still wins"
+    assert score("a promising conversation", min_rate=0.025) is None
+
+
+def test_a_gate_that_passes_on_its_written_condition_does_not_lower_the_headline():
+    priors = {"G0": (2, 3), "market": (2, 3)}
+    thresholds = {"G0": 0.025}
+    base = estimate(priors, [])
+
+    unthresholded = estimate(priors, [row("G0", "25/1000")])
+    scored = estimate(priors, [row("G0", "25/1000")], thresholds=thresholds)
+
+    assert unthresholded.mean < base.mean, "the old reading punished a passing gate"
+    assert scored.mean > base.mean, "a gate that cleared its condition raises the estimate"
+    assert scored.mean == estimate(priors, [row("G0", "pass")]).mean, (
+        "a measurement that clears the threshold is worth exactly one pass"
+    )
+
+
+def test_a_gate_without_a_threshold_still_takes_ratios_as_trials(manufacturing_spec=None):
+    """G2's "40 of 50 stress-grid cells held" is a genuine Bernoulli sample. The
+    fix is per-gate precisely so that this case is left alone."""
+    priors = {"G2": (2, 2)}
+    assert estimate(priors, [row("G2", "40/50")]).terms[0].posterior == Beta(42.0, 12.0)
 
 
 def test_the_estimate_is_a_product_of_its_terms_not_an_average():

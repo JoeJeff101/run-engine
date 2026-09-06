@@ -280,3 +280,47 @@ def test_a_pack_whose_task_names_an_absent_seat_is_refused(tmp_path):
                                                    "seat: nonexistent_seat"))
     with pytest.raises(PackError, match="not on the board"):
         Pack.load(root)
+
+
+# ---------------------------------------------------------------------------
+# The second, hostile headline
+# ---------------------------------------------------------------------------
+
+
+def test_a_hostile_reading_of_the_ledger_produces_a_second_headline(manufacturing, tmp_path):
+    """The red team names rows it cannot accept; the engine demotes exactly
+    those and re-runs the same arithmetic. Two numbers from one procedure --
+    the model never supplies a probability, only identifiers.
+    """
+    from run_engine.agents.backend import OfflineBackend
+
+    evidence = tmp_path / "evidence.md"
+    ledger(evidence, [("EV-001", "G0", "pre-order test", "pass", "REAL")])
+
+    class Hostile(OfflineBackend):
+        def complete(self, system="", prompt="", **kwargs):
+            if "hostile reviewer" in system:
+                return "EV-001"
+            return super().complete(system=system, prompt=prompt, **kwargs)
+
+    result = run(manufacturing, RunOptions(runs_dir=tmp_path / "runs", evidence=evidence),
+                 backend=Hostile())
+
+    assert result.conservative.mean < result.estimate.mean, (
+        "demoting the row the adversary rejected must lower the headline"
+    )
+    note = result.folder.read("97_redteam_verdict.md")
+    assert "hostile reading" in note.lower()
+    assert "EV-001" in note
+
+
+def test_with_nothing_promoted_the_two_headlines_agree(manufacturing, tmp_path):
+    """Both shipped packs have an empty ledger, so the hostile reading is
+    trivially equal to the reported one -- and the note says it means nothing."""
+    evidence = tmp_path / "evidence.md"
+    ledger(evidence, [])
+
+    result = run(manufacturing, RunOptions(runs_dir=tmp_path / "runs", evidence=evidence))
+
+    assert result.conservative.mean == result.estimate.mean
+    assert "means nothing yet" in result.folder.read("97_redteam_verdict.md")

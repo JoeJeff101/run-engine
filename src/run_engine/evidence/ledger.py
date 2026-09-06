@@ -143,6 +143,29 @@ def grade_for(record: Record) -> str:
     return "WEAK"
 
 
+def grade_for_source(source: str) -> str:
+    """The grade a citation earns, computed from the identifier it carries.
+
+    The same rule as ``grade_for`` -- which grades a retrieval ``Record`` --
+    applied to a ledger row's citation cell, so a row that arrived by hand is
+    held to the standard a row that arrived through an adapter already meets.
+
+    It exists because ``promote()`` used to trust the grade written in the
+    staged file. Every row an adapter produced was graded mechanically, so the
+    gap was invisible in normal use; a row typed straight into the staged file
+    claiming REAL on a DOI went through as REAL, and a DOI names a paper that
+    makes a claim rather than a register that settles one. Recomputing here
+    closes the one path by which asserting a grade was, in fact, how a row got
+    that grade.
+    """
+    text = source or ""
+    if REGISTRY_RE.search(text):
+        return "REAL"
+    if PRIMARY_SOURCE_RE.search(text):
+        return "EST"
+    return "WEAK"
+
+
 def source_string(record: Record) -> str:
     """The citation cell. Must satisfy PRIMARY_SOURCE_RE to be promotable."""
     parts: list[str] = []
@@ -296,6 +319,11 @@ class PromotionReport:
     rejected: list[tuple[Row, str]]
     applied: bool
     backup: str | None = None
+    # Rows promoted at a lower grade than they claimed. Reported rather than
+    # silently corrected: a row arriving as REAL on a citation identifier is
+    # usually someone misunderstanding the grades, and a quiet downgrade
+    # teaches them nothing.
+    regraded: list[tuple[Row, str, str]] = field(default_factory=list)
 
     def render(self) -> str:
         out = [
@@ -303,10 +331,17 @@ class PromotionReport:
             f"  promotable: {len(self.promoted)}",
             f"  rejected:   {len(self.rejected)}",
         ]
+        if self.regraded:
+            out.append(f"  regraded:   {len(self.regraded)}")
         if self.backup:
             out.append(f"  backup:     {self.backup}")
         for row in self.promoted:
             out.append(f"  + [{row.grade}] {row.claim} = {row.value}  <- {row.source}")
+        for row, asserted, earned in self.regraded:
+            out.append(
+                f"  ~ [{asserted}->{earned}] {row.claim}: cited a citation identifier, "
+                f"not a register. It is in the ledger and it does not move the number."
+            )
         for row, why in self.rejected:
             out.append(f"  - {row.claim}: {why}")
         return "\n".join(out)
@@ -338,6 +373,7 @@ def promote(
 
     promoted: list[Row] = []
     rejected: list[tuple[Row, str]] = []
+    regraded: list[tuple[Row, str, str]] = []
 
     for raw in _parse_table(staged_path):
         row = Row(
@@ -353,9 +389,20 @@ def promote(
         if row.grade not in PROMOTABLE:
             rejected.append((row, f"grade {row.grade or '?'} is not promotable"))
             continue
-        if not PRIMARY_SOURCE_RE.search(row.source):
+
+        # The grade is recomputed from the citation, never taken on the row's
+        # word. Downgrade only: promotion may lower a grade it cannot justify,
+        # and may never raise one, because raising it here would create exactly
+        # the thing this function exists to prevent -- a path to REAL that
+        # nobody vetted.
+        earned = grade_for_source(row.source)
+        if earned == "WEAK":
             rejected.append((row, "no primary-source identifier in citation"))
             continue
+        if earned != row.grade and PROMOTABLE.index(earned) > PROMOTABLE.index(row.grade):
+            regraded.append((row, row.grade, earned))
+            row.grade = earned
+
         if row.key() in existing_keys:
             rejected.append((row, "already present in the authoritative ledger"))
             continue
@@ -364,7 +411,8 @@ def promote(
         promoted.append(row)
 
     if not apply or not promoted:
-        return PromotionReport(promoted=promoted, rejected=rejected, applied=False)
+        return PromotionReport(promoted=promoted, rejected=rejected, applied=False,
+                               regraded=regraded)
 
     # Back up before touching the authoritative file. Always, not on failure --
     # by the time you know you needed a backup it is too late to take one.
@@ -388,7 +436,8 @@ def promote(
     with authoritative_path.open("a", encoding="utf-8") as handle:
         handle.write(body + "\n")
 
-    return PromotionReport(promoted=promoted, rejected=rejected, applied=True, backup=backup)
+    return PromotionReport(promoted=promoted, rejected=rejected, applied=True,
+                           backup=backup, regraded=regraded)
 
 
 def main(argv: list[str] | None = None) -> int:

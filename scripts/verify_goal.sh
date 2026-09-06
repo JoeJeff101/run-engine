@@ -127,11 +127,35 @@ checksh G5 "run folder carries every required artifact" '
 
 # G6  Two offline runs of the same pack are identical apart from time. If they
 #     are not, the transcript cannot be used as evidence of anything.
+#
+#     The run id has to be normalised as well as the timestamps, and it is a
+#     DIFFERENT shape: run ids are compact (20260906T204857Z) while the -I
+#     filters below match dashed ISO dates. The id appears in five artifacts,
+#     so without its own filter this criterion passed only when both runs
+#     happened to land inside the same clock second, and reported the engine as
+#     nondeterministic whenever they straddled one. A reproducibility check
+#     that fails on a second boundary teaches you to ignore it.
 checksh G6 "offline runs are deterministic" '
   '"$PY"' -m run_engine.cli run --pack packs/manufacturing --offline --runs-dir '"$RUNTMP"'/d1 >/dev/null 2>&1 || exit 1
   '"$PY"' -m run_engine.cli run --pack packs/manufacturing --offline --runs-dir '"$RUNTMP"'/d2 >/dev/null 2>&1 || exit 1
   a=$(ls -d '"$RUNTMP"'/d1/*/ | tail -1); b=$(ls -d '"$RUNTMP"'/d2/*/ | tail -1)
-  diff -r -I "[0-9]\{4\}-[0-9]\{2\}-[0-9]\{2\}T\?[0-9:]*" -I "\"run_id\"" -I "elapsed" "$a" "$b"'
+  # Normalise explicitly rather than leaning on diff -I. Two things vary between
+  # runs by design -- the run id and the wall-clock timestamps -- and they take
+  # several shapes (compact id, id with a collision suffix, ISO with offset or
+  # Z). Rewriting them to fixed tokens and diffing the result says exactly what
+  # is being forgiven, and does not depend on which regex dialect the local
+  # diff speaks.
+  norm() {
+    ( cd "$1" && find . -type f | sort | while read -r f; do
+        printf "=== %s ===\n" "$f"
+        sed -E -e "s/[0-9]{8}T[0-9]{6}Z(-[0-9]+)?/RUNID/g" \
+               -e "s/[0-9]{4}-[0-9]{2}-[0-9]{2}[T ][0-9]{2}:[0-9]{2}:[0-9]{2}([.][0-9]+)?([+-][0-9]{2}:?[0-9]{2}|Z)?/TIMESTAMP/g" \
+               -e "s/[0-9]{4}-[0-9]{2}-[0-9]{2}/DATE/g" "$f"
+      done )
+  }
+  norm "$a" > '"$RUNTMP"'/n1.txt
+  norm "$b" > '"$RUNTMP"'/n2.txt
+  diff '"$RUNTMP"'/n1.txt '"$RUNTMP"'/n2.txt'
 
 # G7  A sealed run folder is immutable.
 checkpytest G7 "finalized run folders reject writes" "sealed"

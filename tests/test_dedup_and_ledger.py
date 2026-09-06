@@ -16,6 +16,7 @@ from run_engine.evidence.ledger import (
     Row,
     StagingLedger,
     grade_for,
+    grade_for_source,
     promote,
     source_string,
 )
@@ -360,3 +361,56 @@ def test_only_the_promotion_script_writes_a_real_row(tmp_path):
         "authoritative ledger"
     )
     assert "our analysis of the market" not in authoritative.read_text()
+
+
+def test_a_citation_identifier_cannot_be_promoted_to_real(tmp_path):
+    """Invariant 2, the harder half. The rejected case above is the easy one --
+    a row with no identifier at all. The one that actually got through was a row
+    asserting REAL while citing a DOI, because promotion checked that *some*
+    identifier was present and then trusted the grade written beside it.
+
+    A DOI names a paper that makes a claim. A CIK names the company. Only the
+    second settles anything, so only the second earns REAL, and promotion now
+    computes that rather than reading it.
+    """
+    staged, authoritative = tmp_path / "s.md", tmp_path / "a.md"
+    overclaimed = Row(
+        topic="G0", claim="market grows 30% a year", value="pass",
+        grade="REAL", source="10.1000/xyz", origin="agent",
+    )
+    StagingLedger(staged, run_id="r1").stage([overclaimed], dry=False)
+
+    report = promote(staged, authoritative, apply=True)
+
+    assert [r.grade for r in report.promoted] == ["EST"], (
+        "a citation identifier earns EST however confidently the row says REAL"
+    )
+    assert report.regraded and report.regraded[0][1:] == ("REAL", "EST")
+    assert "REAL" not in authoritative.read_text(encoding="utf-8").split("---")[-1]
+
+
+def test_promotion_never_raises_a_grade(tmp_path):
+    """Downgrade only. Promotion may refuse a grade it cannot justify; it may
+    not hand one out, because that would be a new path to REAL that nobody
+    vetted -- the exact thing the two-stage ledger exists to prevent.
+    """
+    staged, authoritative = tmp_path / "s.md", tmp_path / "a.md"
+    modest = Row(
+        topic="G0", claim="Apple's gross margin", value="46/100",
+        grade="EST", source="CIK: 0000320193", origin="edgar",
+    )
+    StagingLedger(staged, run_id="r1").stage([modest], dry=False)
+
+    report = promote(staged, authoritative, apply=True)
+
+    assert [r.grade for r in report.promoted] == ["EST"]
+    assert not report.regraded
+
+
+def test_grade_is_a_function_of_the_identifier_namespace():
+    assert grade_for_source("CIK: 0000320193") == "REAL"
+    assert grade_for_source("USPTO:10000000") == "REAL"
+    assert grade_for_source("10.1126/science.1236098") == "EST"
+    assert grade_for_source("PMID: 23887888") == "EST"
+    assert grade_for_source("our analysis of the market") == "WEAK"
+    assert grade_for_source("") == "WEAK"

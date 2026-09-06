@@ -284,7 +284,8 @@ impose on everyone else's seemed like the minimum.
 | [docs/RUN-ENGINE.md](docs/RUN-ENGINE.md) | The full specification, mapped to the code that enforces it |
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Retrieval and orchestration layers in detail |
 | [docs/EVIDENCE-DISCIPLINE.md](docs/EVIDENCE-DISCIPLINE.md) | Grades, identifier namespaces, and the promotion path |
-| [docs/AGENT-PERSONAS.md](docs/AGENT-PERSONAS.md) | Seat charters, tiers, and adversarial pairings |
+| [docs/AGENT-COGNITION.md](docs/AGENT-COGNITION.md) | Where the reasoning comes from: persona construction, the unsure branch, model tiering, source credibility |
+| [docs/AGENT-PERSONAS.md](docs/AGENT-PERSONAS.md) | Seat charters, operating rules, and adversarial pairings |
 | [docs/SOURCES.md](docs/SOURCES.md) | Connectors, access terms, and how to add one |
 | [docs/CLAIMS.md](docs/CLAIMS.md) | Every claim on this page, with the file or test that backs it |
 

@@ -6,12 +6,17 @@ import threading
 
 import pytest
 
-from run_engine.agents.backend import CallCapExceeded, OfflineBackend
+from run_engine.agents.backend import (
+    OUTSIDE, CallCapExceeded, OfflineBackend, diversity_note, resolve_tier,
+)
 from run_engine.agents.board import BoardError, load_board
+from run_engine.evidence.ledger import Row
 from run_engine.agents.claims import ClaimLedger, run_pool
 from run_engine.agents.pipeline import run_pipeline
 from run_engine.agents.sequential import run_board
-from run_engine.agents.tournament import Option, parse_ledger, red_team, run_tournament
+from run_engine.agents.tournament import (
+    Option, challenge_evidence, parse_ledger, red_team, run_tournament,
+)
 
 BOARD_PATH = "boards/example_board.yaml"
 
@@ -419,3 +424,76 @@ def test_ledger_summary_counts_states(tmp_path):
     ledger.claim("t2")
     ledger.complete("t1")
     assert ledger.summary() == {"total": 2, "claimed": 1, "done": 1}
+
+
+# ---------------------------------------------------------------------------
+# Cross-provider independence
+# ---------------------------------------------------------------------------
+
+
+def test_only_attacking_seats_are_routed_to_the_outside_tier(monkeypatch):
+    """Diverse routing is targeted, not global. Moving every seat to another
+    provider would just relocate the monoculture; the seats worth making
+    independent are the ones chartered to attack, because an attacker sharing
+    its target's training distribution shares the blind spot it is looking for.
+    """
+    monkeypatch.setenv("MODEL_OUTSIDE", "vendor-b/model-x")
+
+    assert resolve_tier("light", diverse=True, attacks=True) == OUTSIDE
+    assert resolve_tier("light", diverse=True, attacks=False) == "light"
+    assert resolve_tier("light", diverse=False, attacks=True) == "light"
+
+
+def test_diverse_routing_degrades_loudly_when_no_outside_model_is_configured(monkeypatch):
+    """The failure mode this prevents: a run that *believes* its attacks were
+    provider-independent when they were not. Silence there would be worse than
+    the missing model, so the archive says which one actually happened."""
+    monkeypatch.delenv("MODEL_OUTSIDE", raising=False)
+
+    assert resolve_tier("light", diverse=True, attacks=True) == "light"
+    assert "not provider-independent" in diversity_note(True)
+
+    monkeypatch.setenv("MODEL_OUTSIDE", "vendor-b/model-x")
+    assert "different provider" in diversity_note(True)
+
+
+# ---------------------------------------------------------------------------
+# The adversarial reading of the ledger
+# ---------------------------------------------------------------------------
+
+
+class _Adversary:
+    """A backend that returns one fixed reply, and counts how often it was asked."""
+
+    def __init__(self, reply):
+        self.reply, self.calls = reply, 0
+
+    def complete(self, **kwargs):
+        self.calls += 1
+        return self.reply
+
+
+def _real_row(row_id="EV-001"):
+    return Row(topic="G0", claim="the demand test cleared", value="pass", grade="REAL",
+               source="CIK: 0000320193", origin="human", id=row_id)
+
+
+def test_an_empty_ledger_is_never_sent_to_the_adversary():
+    """No promoted rows means nothing to audit. Calling anyway would spend a
+    heavy-tier request on an empty list at the bottom of every demo run."""
+    adversary = _Adversary("EV-001")
+    assert challenge_evidence([], adversary) == set()
+    assert adversary.calls == 0
+
+
+def test_the_adversary_names_rows_and_cannot_invent_them():
+    """It returns identifiers, never a probability -- the caller does the
+    arithmetic. And an id that is not in the ledger is discarded rather than
+    honoured, so a confused or hostile reply cannot demote a row that exists
+    under a different name, or error the run."""
+    rows = [_real_row("EV-001")]
+
+    assert challenge_evidence(rows, _Adversary("NONE")) == set()
+    assert challenge_evidence(rows, _Adversary("EV-001")) == {"EV-001"}
+    assert challenge_evidence(rows, _Adversary("EV-999 EV-001")) == {"EV-001"}
+    assert challenge_evidence(rows, _Adversary("everything looks fine to me")) == set()

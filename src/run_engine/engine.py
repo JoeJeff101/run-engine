@@ -38,15 +38,17 @@ from pathlib import Path
 from typing import Any
 
 from . import report as reporting
-from .agents.backend import LLMBackend, OfflineBackend
+from .agents.backend import LLMBackend, OfflineBackend, diversity_note
 from .agents.sequential import run_board
-from .agents.tournament import Option, red_team, run_tournament
+from .agents.tournament import Option, challenge_evidence, red_team, run_tournament
 from .calibration import PREDICTION_LOG, record_predictions
 from .evidence.ledger import Row, StagingLedger, _parse_table  # noqa: F401
 from .gates import Ladder, score_master_metric
 from .lint import lint_dossier
 from .pack import Pack
-from .probability import MARKET, estimate, observation, priors_from_spec
+from .probability import (
+    MARKET, estimate, observation, priors_from_spec, score, thresholds_from_spec,
+)
 from .runstate import (
     Continuity, OpenItem, RunFolder, detect_plateau, history_for_plateau, latest_continuity,
     load_runs,
@@ -65,6 +67,7 @@ class RunOptions:
     offline: bool = True
     attack: bool = False
     divergence: bool = False
+    diverse: bool = False          # route attacking seats to a different provider
     budget: str = "lean"
     runs_dir: Path = Path("runs")
     evidence: Path | None = None      # the authoritative ledger, if the pack has one
@@ -84,6 +87,7 @@ class RunResult:
     continuity: Continuity
     metric: Any
     ranked: list = field(default_factory=list)
+    conservative: Any = None       # the headline after a hostile reading of the ledger
 
     @property
     def root(self) -> Path:
@@ -116,13 +120,19 @@ def gate_results(pack: Pack, rows: list[Row]) -> dict[str, str]:
     ("45/50") inform the probability but do not by themselves declare a verdict,
     because deciding where the threshold sits is what the written pass condition
     is for and that is a human's call.
+
+    The exception is a gate that has already made that call in the spec. A
+    declared ``min_rate`` is the written pass condition in machine-readable
+    form, ratified the same way, so a measured rate can be compared against it
+    without anybody exercising judgment at the moment of scoring. That is the
+    difference between a threshold and a preference: one was fixed in advance.
     """
     results: dict[str, str] = {}
     for gate in pack.spec.gates:
         for row in rows:
             if row.topic.upper() != gate.id.upper() or row.grade.upper() != "REAL":
                 continue
-            obs = observation(row.value)
+            obs = score(row.value, min_rate=gate.min_rate)
             if obs == (1.0, 0.0):
                 results[gate.id] = "pass"
             elif obs == (0.0, 1.0):
@@ -190,6 +200,8 @@ def run(pack: Pack, options: RunOptions | None = None, *,
     # -- 1. ground ----------------------------------------------------------
     carried = latest_continuity(options.runs_dir)
     ledger_digest = _ledger_digest(rows)
+    folder.write("00_diversity.md",
+                 "# Attack independence\n\n" + diversity_note(options.diverse) + "\n")
     folder.write("00_grounding.md", pack.grounding(
         ledger_digest=ledger_digest,
         continuity=carried.to_markdown("previous") if previous else "",
@@ -208,7 +220,7 @@ def run(pack: Pack, options: RunOptions | None = None, *,
     # -- 4-5. the board and the work chain ---------------------------------
     staging = StagingLedger(options.staged, run_id=folder.run_id) if options.staged else None
     board_run = run_board(pack.board, backend, router=router, budget=options.budget,
-                          staging=staging)
+                          staging=staging, diverse=options.diverse)
     by_seat = board_run.by_key()
     for task in pack.tasks:
         result = by_seat.get(task.seat)
@@ -217,7 +229,8 @@ def run(pack: Pack, options: RunOptions | None = None, *,
 
     # -- 6. predictions, logged BEFORE the gates are evaluated --------------
     priors = priors_from_spec(pack.spec)
-    prior_only = estimate(priors, [])
+    thresholds = thresholds_from_spec(pack.spec)
+    prior_only = estimate(priors, [], thresholds=thresholds)
     record_predictions(
         folder,
         {t.term: t.posterior.mean for t in prior_only.terms},
@@ -229,7 +242,7 @@ def run(pack: Pack, options: RunOptions | None = None, *,
     ladder = Ladder.from_spec(pack.spec, lock_task=pack.lock_task)
     results = gate_results(pack, rows)
     outcome = ladder.evaluate(results)
-    est = estimate(priors, rows)
+    est = estimate(priors, rows, thresholds=thresholds)
 
     do_no_harm_held = outcome.failed_at is None
     metric = score_master_metric(outcome, do_no_harm_held=do_no_harm_held)
@@ -245,7 +258,22 @@ def run(pack: Pack, options: RunOptions | None = None, *,
         backend=backend,
         context=pack.spec.digest(),
     )
-    folder.write("97_redteam_verdict.md", _verdict_note(verdict, est))
+    # The adversary names rows it cannot accept; the code demotes exactly those
+    # and re-runs the same arithmetic. Two numbers, one procedure, and the gap
+    # between them is how much of the headline a hostile reader would not grant.
+    unsupported = challenge_evidence(rows, backend, context=pack.spec.digest())
+    conservative = est
+    if unsupported:
+        demoted = [
+            Row(topic=r.topic, claim=r.claim, value=r.value,
+                grade=("EST" if r.id in unsupported else r.grade),
+                source=r.source, origin=r.origin, run=r.run, id=r.id)
+            for r in rows
+        ]
+        conservative = estimate(priors, demoted, thresholds=thresholds)
+    folder.write("97_redteam_verdict.md",
+                 _verdict_note(verdict, est, conservative=conservative,
+                               unsupported=unsupported))
 
     # -- 11. lint -----------------------------------------------------------
     report = lint_dossier(dossier, gate_ids=pack.gate_ids(), expected_headline=est.mean)
@@ -279,6 +307,9 @@ def run(pack: Pack, options: RunOptions | None = None, *,
         "phase0": phase0,
         "offline": options.offline,
         "probability": est.to_dict(),
+        "conservative_probability": conservative.to_dict(),
+        "unsupported_rows": sorted(unsupported),
+        "diverse": options.diverse,
         "master_metric": metric.value,
         "gates": {o.id: o.status for o in outcome.outcomes},
         "failed_at": outcome.failed_at,
@@ -296,7 +327,7 @@ def run(pack: Pack, options: RunOptions | None = None, *,
     folder.seal()
     return RunResult(folder=folder, run_id=folder.run_id, phase0=phase0, estimate=est,
                      ladder=outcome, lint=report, continuity=continuity, metric=metric,
-                     ranked=ranked)
+                     ranked=ranked, conservative=conservative)
 
 
 # ---------------------------------------------------------------------------
@@ -397,7 +428,8 @@ def _task_note(pack: Pack, task, result) -> str:
     return "\n".join(lines) + "\n"
 
 
-def _verdict_note(verdict: dict[str, Any], est) -> str:
+def _verdict_note(verdict: dict[str, Any], est, *, conservative=None,
+                  unsupported: set[str] | None = None) -> str:
     survives = verdict.get("survives", False)
     lines = [
         "# Red-team verdict", "",
@@ -410,6 +442,27 @@ def _verdict_note(verdict: dict[str, Any], est) -> str:
         "",
         f"Claim under attack: {est.line()}", "",
     ]
+    unsupported = unsupported or set()
+    if conservative is not None:
+        lines += ["## The headline under a hostile reading", ""]
+        if unsupported:
+            lines += [
+                f"The adversary rejected {len(unsupported)} promoted row(s) as not "
+                f"established by their citation: {', '.join(sorted(unsupported))}. Those "
+                f"rows were demoted to EST and the same arithmetic was run again — the "
+                f"model named the rows, it did not supply the number.", "",
+                f"- as reported: **{est.line()}**",
+                f"- hostile reading: **{conservative.line()}**", "",
+                "The gap between those two lines is the part of the headline that "
+                "depends on evidence a hostile reader would not grant. If it is large, "
+                "the plan is resting on rows that have not really been established.", "",
+            ]
+        else:
+            lines += [
+                "Every promoted row survived the audit, so the hostile reading and the "
+                "reported headline are the same number. With an empty ledger this is "
+                "trivially true and means nothing yet.", "",
+            ]
     notes = verdict.get("notes") or []
     if notes:
         lines += ["## Attempts", ""] + [f"{i}. {n}" for i, n in enumerate(notes, 1)]
