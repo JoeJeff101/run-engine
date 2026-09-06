@@ -24,20 +24,51 @@ run through identical code.
 
 ## Quickstart
 
-Runs with **no API keys and no network**. Offline mode uses a deterministic model stub
-and deterministic fake sources, so a fresh clone works immediately.
+**This system needs API keys to do its job.** The seats reason with a real model and pull
+their facts from real databases; that is where the reasoning and the credibility both come
+from. A run without keys is not a small version of the product, it is the harness with the
+product taken out.
 
 ```bash
 git clone https://github.com/JoeJeff101/run-engine.git
 cd run-engine
 pip install -e ".[dev]"
+cp .env.example .env          # then fill it in — see "What you need" below
 
-pytest                                              # 282 tests, fully offline
-run-engine packs                                    # what is available to run
-run-engine run --pack packs/manufacturing           # one governed run
-run-engine sources --pack packs/manufacturing       # the data layer, and what it needs
-run-engine run --pack packs/manufacturing --diverse # attacks on a different vendor's model
+run-engine packs                                     # what is available to run
+run-engine run --pack packs/manufacturing --live     # a real run: real model, real sources
+run-engine sources --pack packs/manufacturing        # which connectors are live, and what is missing
+run-engine run --pack packs/manufacturing --live --diverse   # attacks on a different vendor's model
 ```
+
+There is also a keyless mode, and it is worth being exact about what it is for:
+
+```bash
+pytest                                      # 282 tests, hermetic — no keys, no network
+run-engine run --pack packs/manufacturing   # --offline is the default: stub model, fake sources
+```
+
+Offline mode exists so a fresh clone installs and executes on the first try, and so the
+orchestration can be tested without paying per iteration to watch nondeterministic output.
+It proves the plumbing. **It does not produce research, and its transcript is not evidence
+of anything** — the offline backend derives its text from a hash of its inputs, so the
+board is not thinking, it is being simulated. Read an offline dossier as a shape, never as
+a finding.
+
+## What you need
+
+Two different kinds of credential, and they fail in two different ways.
+
+| | Without it | Set in |
+|---|---|---|
+| **A model key** (`ANTHROPIC_API_KEY`, plus the `MODEL_*` tier ids) | `--live` refuses to start and names the missing variable. There is no silent fallback to the stub, because a stub run filed as evidence is the worst outcome available. | `.env` |
+| **Data-source keys** (`CORE_API_KEY`, `PATENTSVIEW_API_KEY`, `NCBI_API_KEY`, `S2_API_KEY`, …) | Each connector reports `needs key` and **skips**. It does not guess and it does not quietly downgrade to an estimate. Coverage narrows to the keyless sources and the gap is visible in `run-engine sources`. | `.env` |
+| **`MODEL_OUTSIDE`** (a *different vendor's* model) | `--diverse` degrades: attacking seats keep their own tier, and `00_diversity.md` records that the attacks were not provider-independent. | `.env` |
+
+`run-engine sources --pack <pack>` prints exactly which connectors are callable in your
+environment and which are waiting on a variable, so the honest answer to "how much of this
+board is actually informed?" is one command away. A missing credential is a visible gap in
+coverage, and a gap you can see is worth more than a number you cannot trace.
 
 A run writes an immutable archive and a self-contained HTML report:
 
@@ -57,8 +88,8 @@ runs/20260905T143542Z/
   run.json
 ```
 
-Drop `--offline` for a live run against a real model; it needs `ANTHROPIC_API_KEY` and
-says so precisely if it is missing.
+That archive is worth keeping only when the run behind it was live. The same folder
+appears in offline mode and contains simulated text.
 
 ---
 
@@ -78,6 +109,13 @@ Both shipped packs have an **empty evidence ledger**, on purpose. Every gate rep
 PENDING and the headline rests entirely on priors, because that is the truthful output
 for a plan nobody has tested. Seeding the demo with invented REAL rows would have made
 the screenshot better and inverted the entire point of the project.
+
+Note what that number is and is not. It is the arithmetic working correctly on an empty
+ledger, and it is identical whether the run was live or offline, because with nothing
+promoted there is nothing for the board to have moved. **A live run with keys is what
+starts filling the ledger** — the seats reason with a real model, reach real databases,
+and stage findings a person can promote. Until then the headline is priors, and the engine
+says so in words rather than dressing it up.
 
 ---
 
