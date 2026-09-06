@@ -32,10 +32,11 @@ git clone https://github.com/JoeJeff101/run-engine.git
 cd run-engine
 pip install -e ".[dev]"
 
-pytest                                              # 270 tests, fully offline
+pytest                                              # 282 tests, fully offline
 run-engine packs                                    # what is available to run
 run-engine run --pack packs/manufacturing           # one governed run
 run-engine sources --pack packs/manufacturing       # the data layer, and what it needs
+run-engine run --pack packs/manufacturing --diverse # attacks on a different vendor's model
 ```
 
 A run writes an immutable archive and a self-contained HTML report:
@@ -43,10 +44,11 @@ A run writes an immutable archive and a self-contained HTML report:
 ```
 runs/20260905T143542Z/
   00_grounding.md              brief + spec + contract + ledger, rebuilt this run
+  00_diversity.md              whether the attacks were provider-independent
   T01…T17_*.md                 one note per task in the work chain
   95_value_of_information.md   what to fund next, and why that one
   96_promotion_candidates.md   rows waiting on a document
-  97_redteam_verdict.md        adversarial review, before mechanical validation
+  97_redteam_verdict.md        adversarial review, plus the headline under a hostile reading
   98_lint_report.md            deterministic structural checks
   99_dossier.md                the compiled artifact this run is judged on
   _continuity.md               open items, and the plateau flag
@@ -95,8 +97,26 @@ The model is never trusted with the authoritative record.
 
 The guarantee is not "agents never write the letters REAL" — a ledger is a text file and
 nothing can stop them. The guarantee is that **saying REAL is not how a row becomes
-REAL**. Promotion is a separate command a person runs, it previews by default, and it
-refuses any row whose citation does not match a known identifier namespace.
+REAL**. Promotion is a separate command a person runs, it previews by default, it refuses
+any row whose citation does not match a known identifier namespace, and it **computes the
+grade from that citation rather than reading the one the row claims for itself**.
+
+That last clause used to be missing, and the gap was real: promotion checked that *some*
+identifier was present and then trusted the grade written beside it, so a row asserting
+REAL while citing a DOI went through as REAL. A DOI names a paper that makes a claim; a
+registry identifier names the thing itself. Only the second earns REAL, and promotion now
+enforces that mechanically:
+
+| Row claims | Citation carries | Promoted as |
+|---|---|---|
+| REAL | a registry identifier | REAL |
+| REAL | a citation identifier (DOI, PMID) | **EST**, and the downgrade is reported |
+| REAL | no identifier | rejected |
+| EST | a registry identifier | EST — promotion may lower a grade, never raise one |
+
+Downgrade-only is deliberate. A promotion step that could *raise* a grade would be a new
+path to REAL that nobody vetted, which is the exact thing the two-stage ledger exists to
+prevent.
 
 That rule then propagates into the arithmetic: only promoted rows update a gate's
 posterior. Adding an EST row leaves the reported probability **bit-identical**, which is
@@ -129,6 +149,67 @@ a test named after it, so they read as sentences in the test output.
    version bump with a diff. Never an edit.
 8. **Re-ground every agent every run.** Brief, current spec, persona, ledger — reloaded.
    Continuity comes from artifacts, never from memory.
+
+---
+
+## Where the reasoning comes from
+
+A board of agents is only worth building if its seats think better than one agent asked the
+same question, and that does not happen by giving them different job titles.
+
+**Seats are built from a historic figure, minus that figure's failure mode.** The method is
+two-sided and the second side does the work: *borrow the trait that made the figure
+productive, then attach the specific counter-rule for the failure that same trait causes.*
+Edison is the worked example — the disposition you want in a seat facing an unexplored
+problem, and a catalogue of how that disposition fails.
+
+| Trait borrowed | The failure it causes | The counter-rule that cancels it |
+|---|---|---|
+| "Impossible" is merely untested | Overclaiming; announcing results before they exist | **Bold, not delusional.** Possibility fuels the work; evidence governs the claims. |
+| A dead end is one logged way that won't work | Brute force — thousands of trials for one good question | **Momentum over deadlock.** Name the cheapest experiment that settles it. |
+| 1% inspiration, 99% perspiration | Gatekeeping; hoarding credit | **Collaborate, don't gatekeep.** Hand forward a sharper problem than you received. |
+| Total self-belief | Straying confidently outside competence | **Stay in your lane, at its edge.** Say plainly where your evidence ends. |
+
+A seat given only the left column is a liability; given only the right, it is too cautious to
+contribute. Delivered as a pair, it reaches — and the reach is bounded by a rule aimed
+precisely at how that kind of reaching goes wrong.
+
+**What a seat does when it does not know** is the whole anti-hallucination design, and it is
+a branch with exactly three arms:
+
+```
+Fact needed, not in grounding, not in the ledger
+    ├── 1. Go and find it       → retrieval; the finding is STAGED, never self-promoted
+    ├── 2. Mark it and move on  → "the context is thin", carried as an open item
+    └── 3. Fill the gap from memory
+             ✗ not a discouraged option — an absent one
+```
+
+Arm 3 has nowhere to go. A number produced without a citation cannot be graded above EST,
+and an EST row cannot move the probability: the row can be written, it simply does nothing.
+Arms 1 and 2 are both successes — the judge rubric scores **zero for silence about gaps**,
+so declining to state coverage is a failure rather than an omission.
+
+**Seats declare a tier, not a model**, so a topology never names a vendor. Put the best model
+where the reasoning is hard and a cheaper one everywhere else, and a seventeen-seat board
+costs a fraction of the naive version with no measurable loss. Anyone wanting maximum depth
+points every tier at the top model and pays for it; neither is a code change.
+
+One tier is different. `outside` is chosen for **who trained it, not how capable it is**. Two
+seats on the same model share a training distribution, so they share what it got wrong, and
+an adversarial pairing between them checks style rather than substance. `--diverse` routes
+seats chartered to attack onto a different vendor's model — not to make them smarter, but to
+make their errors uncorrelated with their target's, which is the only property that matters
+when a seat's job is to find what another seat missed.
+
+**Credibility is a property of the source, not the finding.** If you found the fact you know
+what it is worth; if an agent found it you do not. Every retrieved record is stamped by the
+connector that produced it — `primary_db > indexed > oa > weak` — and the highest-authority
+copy survives a merge while absorbing identifiers from the ones it displaces. The class is
+declared once in the pack's `sources.yaml` and **the agent is never asked for it**, which is
+why no amount of model confidence can move a row up a grade.
+
+Full detail: **[docs/AGENT-COGNITION.md](docs/AGENT-COGNITION.md)**.
 
 ---
 
@@ -182,6 +263,14 @@ Three figures are reported, never one — the mean, an 80% credible interval, an
 **REAL fraction**. The third is the one that matters. A plan at 62% with a REAL fraction
 of 0.05 is not a 62% plan.
 
+A fourth figure is computed adversarially. An outside reviewer is shown every promoted row
+and asked one question — does the cited identifier actually establish the stated value? It
+returns **identifiers only**; the engine demotes exactly those rows and runs the same
+arithmetic again. The model names the rows and is never asked for the number, because a
+probability produced by a model is an opinion wearing a decimal point. **The gap between
+the two headlines is the part of the plan resting on evidence a hostile reader would not
+grant.**
+
 No SciPy: the incomplete beta function and its inverse are implemented in
 [`probability.py`](src/run_engine/probability.py), because a decision engine that cannot
 run without a numerical stack is one people will not run. The interval on the product is
@@ -189,15 +278,36 @@ obtained by exact moment-matching rather than sampling, so two runs of the same 
 byte-identical — reproducibility is a property this thing sells, so it is tested rather
 than asserted.
 
+**Deterministic engine, advancing input.** Those two ideas sound contradictory and are
+not, so it is worth stating plainly:
+
+```
+same brief + same spec + same ledger        →  byte-identical output   (auditable)
+new evidence / continuity / amended spec    →  different output        (progress)
+```
+
+The engine is deterministic, which is what makes a transcript usable as evidence of
+anything. The *input* is what advances: a promoted row, a ratified amendment, a
+carried-forward open item. Progress never comes from sampling noise, and a run that
+reproduces its predecessor exactly is reporting something true — that nothing has been
+learned since — which is what the plateau flag is for.
+
 **Value of information** decides what to fund next:
 
 ```
 VoI per unit cost = ( Var(term) − E[Var(term | experiment)] ) × stake ÷ cost
 ```
 
-which for a Beta-Binomial has an exact closed form. This is *why* the cheap demand test
-runs before the expensive pilot — it collapses roughly ten times more variance per unit
-spent. The ladder ordering falls out of the arithmetic instead of being imposed on it.
+which for a Beta-Binomial has an exact closed form. It is why the cheap demand test ranks
+above the expensive pilot: it collapses roughly ten times more variance per unit spent.
+
+Two orderings exist and they are computed separately, which an earlier version of this
+page ran together. The **ladder** is ordered by each gate's declared cost of falsification,
+subject to what each gate needs to exist before it can be run. **Value of information**
+ranks the queued *experiments* by variance reduction per unit cost. They agree on the
+comparison the test asserts — cheap demand test before expensive pilot — but the ladder
+order is declared in the spec, not derived from the VoI arithmetic, and on the shipped
+pack the top-ranked experiment is not the first gate.
 
 ---
 
@@ -223,7 +333,7 @@ freeze, the ledger, the ladder and the arithmetic are the same code.
 ## Testing
 
 ```
-270 passed in 1.35s
+282 passed in 1.37s
 ```
 
 Every source adapter is replaced with a deterministic fake for every test, and the HTTP
@@ -239,6 +349,15 @@ There is also a goal condition — `scripts/verify_goal.sh` — which checks the
 system end to end, including a cold-clone install-and-run, and exits non-zero if any
 criterion fails.
 
+Its determinism criterion was itself wrong for a while, which is worth recording. The
+check diffed two run folders while filtering dashed ISO dates, but run ids are compact
+(`20260906T204857Z`) and appear in five artifacts — so it passed only when both runs
+landed inside the same clock second, and reported the engine as nondeterministic whenever
+they straddled one. It now normalises timestamps and ids to fixed tokens with `sed`, which
+states exactly what is being forgiven and does not depend on which regex dialect the local
+`diff` speaks. A reproducibility check that fails on a second boundary teaches you to
+ignore it, and ignoring it is how real nondeterminism would get in.
+
 ---
 
 ## What this does not do
@@ -253,6 +372,30 @@ criterion fails.
 - **It does not scrape sources whose terms forbid it.** Those run as a human queue: the
   engine emits the exact search strings, a person runs them, and the results return
   through the same staging path. Slower and correct.
+
+### Known limits of the headline number
+
+Documented here rather than discovered later, because a project whose argument is
+"evidence, not assertion" should be first in line for it. These are properties of the
+arithmetic as it stands, measured on the shipped manufacturing pack:
+
+- **With an empty ledger, the headline is the bare product of the prior means.** 0.4 × 0.5
+  × 0.5 × 0.6 × 0.4 = 0.0240, and the engine prints 2.4%. It is arithmetic on five numbers
+  someone typed, which is why it ships with the caveat saying so in words.
+- **It is sensitive to gate *count*.** Declaring a fifth gate at Beta(2,2) halves the
+  headline; dropping one doubles it. Nothing about the world changed. A reviewer who
+  declares six gates instead of four looks half as likely to succeed.
+- **The REAL fraction has a low ceiling.** Total prior mass is 23 and running every gate
+  once buys 4 observations, so the fraction tops out near 0.15 — meaning the top tier of
+  the engine's own caveat text (≥ 0.35) is not reachable on either shipped pack.
+- **The terms are combined as independent.** `P(G1|G0)` is notation; the code multiplies
+  independent Beta means. Real gates are positively correlated, so the product is
+  systematically pessimistic and the interval inherits it.
+
+None of these affect the governance half — the freeze, the ledger, the ladder, the
+defunding rule and the archive stand on their own. They are reasons to read the gate table
+and the funding order as the operative outputs, and the single headline as the weakest
+thing on the page.
 
 ---
 
