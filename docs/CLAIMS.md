@@ -41,6 +41,19 @@ stable; prefer them when a line has moved.
 | "VoI has an exact closed form" | [`voi.py:85`](../src/run_engine/voi.py) — `expected_posterior_variance`; verified against the algebra in `test_expected_posterior_variance_matches_the_closed_form` |
 | "The cheap demand test collapses ~10× more variance per unit spent" | `test_voi_ranks_the_cheap_demand_test_above_the_pilot` — asserts a factor of 5 or better, on the packs' real numbers |
 
+## Known limits, stated on the front page
+
+These rows back the "Known limits of the headline number" section. Each is reproducible in
+a few lines against the shipped manufacturing pack.
+
+| Claim | Backing |
+|---|---|
+| "The headline is the bare product of the prior means" | `estimate(priors, [])` on the pack's declared priors returns 0.0240; 0.4 × 0.5 × 0.5 × 0.6 × 0.4 = 0.0240 |
+| "Adding a fifth gate halves it; dropping one doubles it" | same call with a Beta(2,2) term added (0.0120) and with G3 removed (0.0400) |
+| "The REAL fraction tops out near 0.15" | prior mass 23, four gates run once = 4 observations; 4/(4+23) = 0.148 |
+| "The terms are combined as independent" | [`probability.py`](../src/run_engine/probability.py) `estimate()` — `mean *= t.posterior.mean` and `second *= var + mean²`, which is E[XY]=E[X]E[Y] |
+| "The ladder order is declared, not derived from VoI" | [`gates.py`](../src/run_engine/gates.py) `_order()` sorts on `GateSpec.cost` under dependency constraints; `voi.rank()` is a separate computation over experiments |
+
 ## Reasoning and independence
 
 | Claim | Backing |
