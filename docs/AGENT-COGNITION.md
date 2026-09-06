@@ -74,7 +74,172 @@ seventeen unrelated prompts. The personalities differ; the standards do not.
 
 ---
 
-## 3. What a seat does when it does not know
+## 3. Designing the roster: the step that does the most work
+
+Building *one* good personality is the previous section. Building a **board** is a
+different job, and it is the one that changes output quality most, because a board's
+weakness is almost never that a seat was too weak — it is that seventeen seats turned out
+to be the same seat wearing different titles.
+
+The procedure below is what the seat files in a pack are the output of. It is written as
+steps because it is genuinely sequential: each one constrains the next.
+
+### Step 1 — Name the irreversible step, then the crux
+
+Before any seat exists, write down two sentences: **what is the decision you cannot take
+back**, and **what single unknown decides whether it is a good idea**. Everything else is
+downstream. The crux gets a seat of its own and that seat is non-negotiable, because a
+roster that spreads attention evenly across a problem with one dominant unknown is a
+roster that will study everything except the thing that matters.
+
+### Step 2 — Fix the small non-negotiable core
+
+Most of a board is useful. A few seats are load-bearing, and a run without them is not a
+weaker run, it is an invalid one. A workable core is four or five seats answering:
+
+> *make the thing · prove it is safe · make it work in the real world · make it legal ·
+> prove the crux*
+
+Mark them in the pack. If one is absent the run should be treated as not having happened,
+and the rest of the roster is a matter of resourcing rather than validity.
+
+### Step 3 — Give every seat a discipline, and count quorum in disciplines
+
+Each seat declares `discipline` in the board YAML, and the board declares
+`core_disciplines`. Quorum is then computed over **disciplines represented, not heads
+present**:
+
+```python
+def missing_disciplines(self):
+    return [d for d in self.core_disciplines if d not in self.disciplines()]
+```
+
+A board of twelve seats who all do the same job is correctly reported as **not quorate**.
+`Pack.validate()` raises `PackError` and the pack does not load, so the run never happens
+rather than producing a confident consensus from a monoculture:
+
+> *the board does not cover every core discipline; missing: regulatory. A board missing a
+> discipline is not quorate and its vote does not count.*
+
+The check is about **coverage, not attendance** — the failure it guards against is a room
+that agrees because nobody in it was chartered to raise the objection, which looks exactly
+like consensus. It is the cheapest structural defence available against a board that agrees
+with itself, and it costs one YAML field per seat.
+
+### Step 4 — Write each personality against the gap the others leave
+
+This is the step people skip, and skipping it is what produces seventeen interchangeable
+experts. A seat is not designed in isolation; it is designed **relative to the seats that
+already exist**. For each new seat, write three things down before writing the charter:
+
+| Field | The question it answers | Example |
+|---|---|---|
+| **Archetype** | What kind of thinker is this, in one line? | *the perception realist / calm quantifier* |
+| **Complements** | Which seat's weakness does this one cover? | *keeps the inventor's optimism honest by defining the measured target* |
+| **Signature** | The one question this seat always asks | *"In what light, measured how? Give me the measurement, not an adjective."* |
+
+If you cannot fill in **Complements** without repeating an existing seat, you do not have
+a new seat — you have a duplicate, and adding it makes the board worse by making its
+consensus look better-supported than it is.
+
+A roster built this way has a describable shape. A useful throughline:
+
+> the **bold makers** are balanced by the **crux-skeptics**, translated into reality by the
+> **quantifiers**, and kept buildable by the **pragmatists**.
+
+Every seat should be placeable in that sentence. A seat you cannot place is usually a seat
+you do not need.
+
+### Step 5 — Set temperature against role, and pair it inversely
+
+Temperature is part of the personality, not a tuning knob. The seat chartered to reach runs
+hot; the seat chartered to check the reach runs cold. Pair them explicitly with
+`challenges`, and pair them **inversely** — two hot seats produce two overreaches and no
+check, two cold seats produce agreement and no reach.
+
+The attacker is usually the *colder* of the pair. On the example board the
+Reproducibility Reviewer (T=0.4) is chartered to attack the Domain Generalist (T=1.0) —
+the coldest seat checks the hottest, because the Generalist is chartered to overreach and
+someone has to be chartered to check the reach:
+
+```yaml
+- key: domain_generalist
+  temperature: 1.0          # chartered to reach; told its errors are anticipated
+- key: reproducibility_reviewer
+  temperature: 0.4          # chartered to check the reach
+  challenges: [domain_generalist]
+```
+
+Board validation also refuses an attack that points forward — *you cannot attack an
+argument that has not been made yet* — so `challenges` edges only ever run backwards.
+
+### Step 6 — Declare context narrowly, and never let it mean "everything"
+
+Each seat lists exactly the upstream seats it may read. Shared-everything context is worse
+than it looks for two reasons: it grows quadratically, so a seventeen-seat board becomes
+unaffordable around seat nine — and it destroys the point of having distinct seats, because
+once every agent has read every other agent's reasoning they converge, and seventeen
+correlated opinions are worth roughly one opinion.
+
+Board validation refuses to load if a `context` or `challenges` reference is misspelled.
+That strictness exists because the failure it prevents is **silence**: a seat whose upstream
+dependency does not resolve receives an empty context and produces confident, ungrounded
+output. Nothing errors. You simply get worse answers, with no signal that anything went
+wrong.
+
+### Step 7 — Reweight rather than replace when the problem moves
+
+When the hard part of a problem shifts, the instinct is to swap seats out. Usually the
+better move is to **re-center the seats you have** and add only for the genuinely new
+unknown — recording, in the pack, that the seat's centre of gravity moved and why. A roster
+that is rewritten every time the problem changes loses the thing that made it useful: the
+accumulated, written statement of who is responsible for what.
+
+### What each seat file ends up containing
+
+Beyond the shared spine, a fully specified seat declares its mandate, how it thinks, its
+methods and standards, how it collaborates, **when it holds the line**, its anti-roadblock
+moves, its inputs and outputs, its guardrails, and its signature questions.
+
+The two that carry the most weight are the ones that read oddly at first:
+
+- **When I hold the line** — the conditions under which this seat refuses to agree. Without
+  it, a seat's "standards" are aspirational and the model will trade them away under mild
+  social pressure from an upstream seat.
+- **Anti-roadblock moves** — how this seat unblocks *others*. It is what stops a
+  well-designed skeptical seat from becoming a seat that only says no.
+
+### Why this is worth the effort
+
+The design cost is real — it is a day of writing per pack, not an afternoon — so the
+argument for it should be explicit.
+
+**Against one capable agent.** A single agent asked to be rigorous is optimizing one
+objective, and will satisfy it the cheapest way available: hedging. Hedged text is
+unfalsifiable and *reads* as careful, which is what makes it dangerous. Split the objectives
+across seats with **opposed incentives** and no single output can satisfy everyone by
+hedging — the seat rewarded for reach and the seat rewarded for finding where reach failed
+cannot both be satisfied by the safe middle answer.
+
+**Against seventeen generic experts.** Seats that differ only in job title share a
+disposition, and shared dispositions produce correlated errors. Seventeen correlated
+opinions are one opinion with a false quorum attached — worse than one opinion, because the
+apparent agreement is itself read as evidence. Designing each seat against the gap the
+others leave is what makes the disagreement real, and **disagreement is the product**: two
+competent reviewers reaching different conclusions is information, which is why the dossier
+editor is forbidden from resolving it by splitting the difference.
+
+**The failure it prevents is specific.** Not "the board gave a wrong answer" — that is
+recoverable and visible. The failure is a board that produces a *confident, unanimous,
+well-written* answer that everyone believes because seventeen seats agreed, when in fact one
+disposition was consulted seventeen times. Deliberate personality design is the only defence
+against that, because none of the downstream machinery can detect it: the grades will be
+correct, the citations will resolve, the linter will pass, and the answer will still be the
+product of a monoculture.
+
+---
+
+## 4. What a seat does when it does not know
 
 This is the whole anti-hallucination design, and it is a branch with exactly three arms.
 
@@ -105,7 +270,7 @@ retries are recorded, so "nothing found" from one lazy query is not a reportable
 
 ---
 
-## 4. Which model runs which seat, and what it costs
+## 5. Which model runs which seat, and what it costs
 
 Every seat declares a **tier**, not a model. Tiers resolve to model ids through the
 environment, so a topology never names a vendor and swapping providers is configuration
@@ -152,7 +317,7 @@ independent is worse than one that knows they were not.
 
 ---
 
-## 5. Sources, keys, and why credibility is a property of the source
+## 6. Sources, keys, and why credibility is a property of the source
 
 Seats reach real databases through credentialed connectors. The rule that governs them is not
 "which API" but **which class of return may ever be promoted**, and that decision is attached
@@ -215,7 +380,7 @@ does not have the tool.
 
 ---
 
-## 6. The cycle, and why it does not repeat itself
+## 7. The cycle, and why it does not repeat itself
 
 At the end of a run, three things read the output rather than produce it:
 
