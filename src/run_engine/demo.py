@@ -12,8 +12,6 @@ through.
 from __future__ import annotations
 
 import argparse
-import sys
-from pathlib import Path
 
 from .evidence.ledger import Row, StagingLedger, grade_for, source_string
 from .retrieval.profiles import INTENTS, resolve_intents

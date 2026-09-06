@@ -31,7 +31,6 @@ dressed up as anything better.
 
 from __future__ import annotations
 
-import json
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
@@ -41,13 +40,13 @@ from . import report as reporting
 from .agents.backend import LLMBackend, OfflineBackend, diversity_note
 from .agents.sequential import run_board
 from .agents.tournament import Option, challenge_evidence, red_team, run_tournament
-from .calibration import PREDICTION_LOG, record_predictions
+from .calibration import record_predictions
 from .evidence.ledger import Row, StagingLedger, _parse_table  # noqa: F401
 from .gates import Ladder, score_master_metric
 from .lint import lint_dossier
 from .pack import Pack
 from .probability import (
-    MARKET, estimate, observation, priors_from_spec, score, thresholds_from_spec,
+    estimate, priors_from_spec, score, thresholds_from_spec,
 )
 from .runstate import (
     Continuity, OpenItem, RunFolder, detect_plateau, history_for_plateau, latest_continuity,
@@ -248,19 +247,6 @@ def run(pack: Pack, options: RunOptions | None = None, *,
     metric = score_master_metric(outcome, do_no_harm_held=do_no_harm_held)
 
     # -- 9. the dossier -----------------------------------------------------
-    dossier = reporting.dossier(pack, folder.run_id, outcome, est, metric, board_run,
-                                rows=rows, phase0=phase0)
-    folder.write("99_dossier.md", dossier)
-
-    # -- 10. red team, before the linter -----------------------------------
-    verdict = red_team(
-        claim=f"{pack.brief.one_line()} — {est.line()}",
-        backend=backend,
-        context=pack.spec.digest(),
-    )
-    # The adversary names rows it cannot accept; the code demotes exactly those
-    # and re-runs the same arithmetic. Two numbers, one procedure, and the gap
-    # between them is how much of the headline a hostile reader would not grant.
     unsupported = challenge_evidence(rows, backend, context=pack.spec.digest())
     conservative = est
     if unsupported:
@@ -271,6 +257,18 @@ def run(pack: Pack, options: RunOptions | None = None, *,
             for r in rows
         ]
         conservative = estimate(priors, demoted, thresholds=thresholds)
+
+    dossier = reporting.dossier(pack, folder.run_id, outcome, est, metric, board_run,
+                                rows=rows, phase0=phase0,
+                                conservative=conservative, unsupported=unsupported)
+    folder.write("99_dossier.md", dossier)
+
+    # -- 10. red team, before the linter -----------------------------------
+    verdict = red_team(
+        claim=f"{pack.brief.one_line()} — {est.line()}",
+        backend=backend,
+        context=pack.spec.digest(),
+    )
     folder.write("97_redteam_verdict.md",
                  _verdict_note(verdict, est, conservative=conservative,
                                unsupported=unsupported))
@@ -322,7 +320,8 @@ def run(pack: Pack, options: RunOptions | None = None, *,
     })
     folder.write("report.html", reporting.html(
         pack, folder.run_id, outcome, est, metric, report, continuity, ranked,
-        phase0=phase0, started=started))
+        phase0=phase0, started=started, conservative=conservative,
+        unsupported=unsupported))
 
     folder.seal()
     return RunResult(folder=folder, run_id=folder.run_id, phase0=phase0, estimate=est,
@@ -377,7 +376,7 @@ def _divergence(pack: Pack, backend: LLMBackend) -> str:
             for i in range(1, 4)
         ]
         result = run_tournament(
-            question=f"Which route best serves the brief, judged on the master metric?",
+            question="Which route best serves the brief, judged on the master metric?",
             options=options, backend=backend, context=pack.spec.digest())
         body = result.transcript() if hasattr(result, "transcript") else str(result)
     except Exception as exc:  # a divergence branch must never fail the run

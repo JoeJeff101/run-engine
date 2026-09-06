@@ -19,7 +19,7 @@ from run_engine.gates import (
 )
 from run_engine.probability import (
     Beta, MARKET, betainc, beta_quantile, estimate, observation, priors_from_spec,
-    score, thresholds_from_spec,
+    score,
 )
 from run_engine.spec.model import GateSpec, MasterMetric, Spec
 from run_engine.voi import Experiment, expected_posterior_variance, rank, top_pick

@@ -79,7 +79,7 @@ def cmd_run(args) -> int:
     print(f"run {result.run_id} · phase 0: {result.phase0}")
     print(result.estimate.line())
     print(f"master metric: {result.metric.line()}")
-    print(f"gates: " + ", ".join(f"{o.id}={o.status}" for o in result.ladder.outcomes))
+    print("gates: " + ", ".join(f"{o.id}={o.status}" for o in result.ladder.outcomes))
     if result.ladder.blocked:
         print(f"BLOCKED at {result.ladder.failed_at} — downstream defunded "
               f"({', '.join(result.ladder.defunded) or 'none'}), routed to "

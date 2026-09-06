@@ -40,7 +40,8 @@ FREEZE_NOTE = {
 
 
 def dossier(pack: Pack, run_id: str, ladder, est, metric, board_run,
-            *, rows: Sequence[Row] = (), phase0: str = "frozen") -> str:
+            *, rows: Sequence[Row] = (), phase0: str = "frozen",
+            conservative=None, unsupported: set[str] | None = None) -> str:
     reals = [r for r in rows if r.grade.upper() == "REAL"]
     lines: list[str] = [
         f"# {pack.name} — technical dossier",
@@ -80,6 +81,17 @@ def dossier(pack: Pack, run_id: str, ladder, est, metric, board_run,
         "before it. Only rows graded REAL move any term.",
         "",
     ]
+    if conservative is not None and unsupported:
+        lines += [
+            f"**Under a hostile reading: {conservative.line()}** [EST]",
+            "",
+            f"An adversarial reviewer rejected {len(unsupported)} promoted row(s) as not "
+            f"established by their citation ({', '.join(sorted(unsupported))}). Those rows "
+            f"were demoted and the same arithmetic re-run. The difference between the two "
+            f"headlines is the part of this plan resting on evidence a hostile reader "
+            f"would not grant.",
+            "",
+        ]
 
     lines += [ladder.to_markdown(), ""]
 
@@ -210,7 +222,8 @@ code{font-family:var(--mono);font-size:.88em}
 
 
 def html(pack: Pack, run_id: str, ladder, est, metric, lint_report, continuity, ranked,
-         *, phase0: str = "frozen", started: str = "") -> str:
+         *, phase0: str = "frozen", started: str = "", conservative=None,
+         unsupported: set[str] | None = None) -> str:
     """A self-contained page. One file, no external assets, readable in either theme."""
     gate_rows = "\n".join(
         f'<tr><td class="id">{_e(o.id)}</td><td class="num">{o.gate.cost:,.0f}</td>'
@@ -242,6 +255,15 @@ def html(pack: Pack, run_id: str, ladder, est, metric, lint_report, continuity, 
     lint_line = (
         f"{len(lint_report.blocking)} blocking, {len(lint_report.advisory)} advisory"
         if lint_report.findings else "clean — every figure carries a source")
+
+    hostile_block = (
+        f'<div class="caveat"><b>Under a hostile reading: {conservative.mean:.1%}</b> '
+        f'(80% CrI {conservative.lo:.1%} – {conservative.hi:.1%}). An adversarial reviewer '
+        f'rejected {len(unsupported or ())} promoted row(s) as not established by their '
+        f'citation; those rows were demoted and the same arithmetic re-run. The gap between '
+        f'that figure and the one above is the part of this plan resting on evidence a '
+        f'hostile reader would not grant.</div>'
+        if conservative is not None and unsupported else "")
 
     plateau_block = (
         '<div class="caveat"><b>Plateau.</b> The last three runs did not move the headline '
@@ -279,6 +301,7 @@ def html(pack: Pack, run_id: str, ladder, est, metric, lint_report, continuity, 
   <p class="figsub">Share of this estimate resting on promoted evidence rather than priors.</p>
 </div>
 <div class="caveat">{_e(est.caveat())}</div>
+{hostile_block}
 {plateau_block}
 
 <h2>Master metric</h2>

@@ -21,7 +21,7 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass
-from typing import Iterable, Sequence
+from typing import Sequence
 
 from .evidence.ledger import PRIMARY_SOURCE_RE
 

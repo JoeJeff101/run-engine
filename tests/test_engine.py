@@ -309,9 +309,39 @@ def test_a_hostile_reading_of_the_ledger_produces_a_second_headline(manufacturin
     assert result.conservative.mean < result.estimate.mean, (
         "demoting the row the adversary rejected must lower the headline"
     )
-    note = result.folder.read("97_redteam_verdict.md")
-    assert "hostile reading" in note.lower()
-    assert "EV-001" in note
+    # It has to reach the artifacts a person actually reads, not only the
+    # verdict file. The dossier is what the run is judged on and report.html is
+    # the page you would send someone; a second headline buried in a side file
+    # is a number nobody sees.
+    for name in ("97_redteam_verdict.md", "99_dossier.md", "report.html"):
+        assert "hostile reading" in result.folder.read(name).lower(), (
+            f"the adversarial headline never reached {name}"
+        )
+    assert "EV-001" in result.folder.read("97_redteam_verdict.md")
+
+
+def test_the_adversarial_headline_does_not_trip_the_linter(manufacturing, tmp_path):
+    """The dossier gains a second probability, and the dossier is linted. A
+    figure the engine itself wrote must satisfy the rule the engine imposes on
+    everyone else."""
+    from run_engine.agents.backend import OfflineBackend
+
+    evidence = tmp_path / "evidence.md"
+    ledger(evidence, [("EV-001", "G0", "pre-order test", "pass", "REAL")])
+
+    class Hostile(OfflineBackend):
+        def complete(self, system="", prompt="", **kwargs):
+            if "hostile reviewer" in system:
+                return "EV-001"
+            return super().complete(system=system, prompt=prompt, **kwargs)
+
+    result = run(manufacturing, RunOptions(runs_dir=tmp_path / "runs", evidence=evidence),
+                 backend=Hostile())
+
+    assert not result.lint.blocking, (
+        f"the engine's own adversarial headline trips its own linter: "
+        f"{[f.rule for f in result.lint.blocking]}"
+    )
 
 
 def test_with_nothing_promoted_the_two_headlines_agree(manufacturing, tmp_path):
